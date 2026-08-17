@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from '@/components/transitions/LuxuryLink';
 import { useStore } from '@/store/useStore';
@@ -12,13 +12,17 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const login = useStore((state) => state.login);
   const { navigate } = useLuxuryNavigation();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const redirect = searchParams.get('redirect') || '/dashboard';
 
   const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setError('');
     const accounts = {
       'vip@noiroak.com': { password: 'NoirVip@001', user: { id: '1', name: 'VIP Customer', email, role: 'vip' as const } },
@@ -28,11 +32,14 @@ function LoginForm() {
     const account = accounts[email as keyof typeof accounts];
     if (!account || account.password !== password) {
       setError('Access could not be verified. Check the email and password and try again.');
+      setIsSubmitting(false);
       return;
     }
+    const destination = account.user.role === 'admin' ? '/admin' : redirect;
+    router.prefetch(destination);
     login(account.user);
     setSuccess(true);
-    window.setTimeout(() => navigate(account.user.role === 'admin' ? '/admin' : redirect), 1000);
+    navigate(destination);
   };
 
   if (success) {
@@ -53,13 +60,13 @@ function LoginForm() {
 
       <form onSubmit={handleLogin} className="mt-8 space-y-6">
         {error && <div role="alert" className="border-l border-red-300/55 bg-red-950/15 px-4 py-3 text-sm text-red-100/80">{error}</div>}
-        <div><label htmlFor="login-email" className="form-label">Email</label><input id="login-email" required type="email" name="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="luxury-input" /></div>
-        <div><label htmlFor="login-password" className="form-label">Password</label><input id="login-password" required type="password" name="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="luxury-input" /></div>
+        <div><label htmlFor="login-email" className="form-label">Email</label><input disabled={isSubmitting} id="login-email" required type="email" name="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="luxury-input" /></div>
+        <div><label htmlFor="login-password" className="form-label">Password</label><input disabled={isSubmitting} id="login-password" required type="password" name="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="luxury-input" /></div>
         <div className="flex items-center justify-between gap-4 text-xs text-[rgba(241,232,216,0.68)]">
           <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="accent-[#D9B86C]" />Remember me</label>
           <button type="button" className="min-h-11 border-b border-transparent hover:border-[#D9B86C]/35 hover:text-[#D9B86C]">Forgot password?</button>
         </div>
-        <button type="submit" className="btn-foil w-full"><span className="btn-label">Enter The Vault</span></button>
+        <button type="submit" disabled={isSubmitting} className="btn-foil w-full disabled:opacity-55"><span className="btn-label">{isSubmitting ? 'Verifying access' : 'Enter The Vault'}</span></button>
       </form>
 
       <div className="mt-8 border-t border-[rgba(200,164,93,0.18)] pt-6">

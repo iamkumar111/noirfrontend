@@ -85,8 +85,8 @@ export default function OurStoryPage() {
       <main className="relative z-10 mx-auto max-w-[1240px]">
         <section className="origin-section grid min-h-[76svh] items-center gap-12 pb-20 pt-8 lg:grid-cols-12 lg:gap-10 lg:pb-28 lg:pt-12">
           <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 12, filter: "blur(2px)" }}
-            animate={reduceMotion ? undefined : { opacity: 1, y: 0, filter: "blur(0px)" }}
+            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: EASE }}
             className="relative z-10 lg:col-span-6"
           >

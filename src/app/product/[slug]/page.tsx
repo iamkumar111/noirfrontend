@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -10,10 +10,28 @@ import { useStore } from '@/store/useStore';
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { user, products, catalogStatus, catalogError, addToCart, setCartOpen, toggleWishlist, wishlist, cartStatus } = useStore();
+  const user = useStore((state) => state.user);
+  const products = useStore((state) => state.products);
+  const catalogStatus = useStore((state) => state.catalogStatus);
+  const catalogError = useStore((state) => state.catalogError);
+  const addToCart = useStore((state) => state.addToCart);
+  const addDemoProduct = useStore((state) => state.addDemoProduct);
+  const setCartOpen = useStore((state) => state.setCartOpen);
+  const toggleWishlist = useStore((state) => state.toggleWishlist);
+  const wishlist = useStore((state) => state.wishlist);
   const product = products.find((item) => item.slug === slug);
   const [quantity, setQuantity] = useState(1);
   const [notice, setNotice] = useState('');
+  const [isReserving, setIsReserving] = useState(false);
+  const noticeTimer = useRef<number | null>(null);
+
+  useEffect(() => () => { if (noticeTimer.current) window.clearTimeout(noticeTimer.current); }, []);
+
+  const showNotice = useCallback((message: string) => {
+    if (noticeTimer.current) window.clearTimeout(noticeTimer.current);
+    setNotice(message);
+    noticeTimer.current = window.setTimeout(() => setNotice(''), 2600);
+  }, []);
 
   if (!product) {
     return (
@@ -40,22 +58,27 @@ export default function ProductDetailPage() {
   ];
   const senses = Object.entries(product.sensory) as [keyof typeof product.sensory, string][];
 
-  const showNotice = (message: string) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(''), 2600);
-  };
-
   const handleReserve = async () => {
+    if (isReserving) return;
+    if (product.source === 'fallback') {
+      addDemoProduct(product, quantity);
+      showNotice('Added to your demo selection. Continue to the reservation steps.');
+      setCartOpen(true);
+      return;
+    }
     if (!product.variantId || !product.availableForSale) {
       showNotice('This item is preview-only until it is added to the release inventory.');
       return;
     }
     try {
+      setIsReserving(true);
       await addToCart(product.variantId, quantity);
       showNotice('Added to private selection.');
       setCartOpen(true);
     } catch {
       showNotice('This piece could not be added to your private selection.');
+    } finally {
+      setIsReserving(false);
     }
   };
 
@@ -64,7 +87,7 @@ export default function ProductDetailPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_55%_at_50%_0%,rgba(26,21,17,0.72)_0%,#050403_58%)]" />
 
       {notice && (
-        <motion.div role="status" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="fixed bottom-24 left-1/2 z-50 w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2 border border-[rgba(200,164,93,0.3)] bg-[#171512]/95 px-5 py-4 text-center text-xs text-[#E0C17A] shadow-2xl lg:bottom-8">
+        <motion.div role="status" aria-live="polite" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2 border border-[rgba(200,164,93,0.3)] bg-[#171512] px-5 py-4 text-center text-xs text-[#E0C17A] shadow-2xl lg:bottom-8">
           {notice}
         </motion.div>
       )}
@@ -115,12 +138,12 @@ export default function ProductDetailPage() {
                     <div>
                       <label htmlFor="quantity" className="mb-2 block text-[9px] uppercase tracking-[0.12em] text-[rgba(241,232,216,0.62)]">Quantity</label>
                       <div id="quantity" className="flex h-12 items-center border border-[rgba(200,164,93,0.22)]">
-                        <button type="button" aria-label="Decrease quantity" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="h-12 w-11 text-[#D9B86C]">−</button>
+                        <button type="button" disabled={quantity <= 1} aria-label="Decrease quantity" onClick={() => setQuantity((current) => Math.max(1, current - 1))} className="h-12 w-11 touch-manipulation text-[#D9B86C] disabled:opacity-30">−</button>
                         <span className="w-8 text-center text-sm text-[#F1E8D8]">{quantity}</span>
-                        <button type="button" aria-label="Increase quantity" onClick={() => setQuantity(quantity + 1)} className="h-12 w-11 text-[#D9B86C]">+</button>
+                        <button type="button" disabled={product.stock !== null && quantity >= product.stock} aria-label="Increase quantity" onClick={() => setQuantity((current) => Math.min(product.stock ?? Number.POSITIVE_INFINITY, current + 1))} className="h-12 w-11 touch-manipulation text-[#D9B86C] disabled:opacity-30">+</button>
                       </div>
                     </div>
-                    <button type="button" onClick={() => void handleReserve()} disabled={cartStatus === 'loading'} className="btn-foil h-12 flex-1 disabled:opacity-55"><span className="btn-label">{cartStatus === 'loading' ? 'Preparing selection' : 'Reserve Lot 1'}</span></button>
+                    <button type="button" onClick={() => void handleReserve()} disabled={isReserving} className="btn-foil hidden h-12 flex-1 disabled:opacity-55 lg:inline-flex"><span className="btn-label">{isReserving ? 'Preparing selection' : 'Reserve Lot 1'}</span></button>
                   </div>
                 </div>
               ) : (
@@ -183,8 +206,8 @@ export default function ProductDetailPage() {
       </div>
 
       {user && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#C9A45C]/20 bg-[#050505]/95 pb-safe backdrop-blur-md lg:hidden">
-          <div className="flex items-center gap-4 px-5 py-3"><div><span className="block font-serif text-lg text-[#C9A45C]">{product.price || product.lockedPrice}</span><span className="text-[8px] uppercase tracking-[0.12em] text-[rgba(241,232,216,0.58)]">{product.batchCode}</span></div><button type="button" onClick={() => void handleReserve()} disabled={cartStatus === 'loading'} className="btn-foil h-12 flex-1 !py-0 disabled:opacity-55"><span className="btn-label">Reserve Lot 1</span></button></div>
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#C9A45C]/20 bg-[#050505] pb-[env(safe-area-inset-bottom)] lg:hidden">
+          <div className="flex items-center gap-4 px-5 py-3"><div><span className="block font-serif text-lg text-[#C9A45C]">{product.price || product.lockedPrice}</span><span className="text-[8px] uppercase tracking-[0.12em] text-[rgba(241,232,216,0.58)]">{product.batchCode}</span></div><button type="button" onClick={() => void handleReserve()} disabled={isReserving} className="btn-foil h-12 flex-1 !py-0 disabled:opacity-55"><span className="btn-label">{isReserving ? 'Preparing selection' : 'Reserve Lot 1'}</span></button></div>
         </div>
       )}
     </div>

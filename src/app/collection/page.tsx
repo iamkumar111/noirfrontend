@@ -11,7 +11,9 @@ type Filter = (typeof FILTERS)[number];
 
 export default function CollectionPage() {
   const [filter, setFilter] = useState<Filter>('All');
-  const { products, catalogStatus, catalogError } = useStore();
+  const products = useStore((state) => state.products);
+  const catalogStatus = useStore((state) => state.catalogStatus);
+  const catalogError = useStore((state) => state.catalogError);
 
   const filteredProducts = useMemo(() => {
     if (filter === 'All') return products;

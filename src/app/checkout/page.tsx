@@ -1,25 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Link from '@/components/transitions/LuxuryLink';
 import { useStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/medusa/products';
-import { prepareCheckout, selectFirstShippingMethod, setCheckoutDetails } from '@/lib/medusa/checkout';
-
-const PAYMENT_OPTIONS = [
-  ['upi', 'UPI', 'Pay with a verified UPI app'],
-  ['card', 'Card', 'Credit or debit card'],
-  ['razorpay', 'Razorpay', 'Secure gateway checkout'],
-  ['cashfree', 'Cashfree', 'Secure gateway checkout'],
-];
+import { completeVerifiedCheckout, prepareCheckout, selectFirstShippingMethod, setCheckoutDetails } from '@/lib/medusa/checkout';
+import { createDemoReservation } from '@/lib/reservations';
 
 export default function CheckoutPage() {
-  const { user, cart, medusaCart, loadCart, cartStatus, hasHydrated } = useStore();
+  const { user, cart, cartMode, medusaCart, cartStatus, hasHydrated } = useStore();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [checkoutNotice, setCheckoutNotice] = useState('');
+  const [paymentState, setPaymentState] = useState<'idle' | 'preparing' | 'gateway' | 'verifying' | 'failed'>('idle');
+  const requestRef = useRef(false);
+  const paymentAttemptRef = useRef<string | null>(null);
+  const clearCart = useStore((state) => state.clearCart);
 
   useEffect(() => {
     if (hasHydrated && !user) router.replace('/login?redirect=/checkout');
@@ -30,18 +28,40 @@ export default function CheckoutPage() {
   const shipping = medusaCart?.shipping_total ?? 0;
   const taxes = medusaCart?.tax_total ?? 0;
   const total = medusaCart?.total ?? subtotal;
-  const currencyCode = medusaCart?.currency_code || null;
+  const currencyCode = medusaCart?.currency_code || (cartMode === 'demo' ? 'inr' : null);
+  const isDemoCheckout = cartMode === 'demo';
 
   const handlePayment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!medusaCart) {
+    if (requestRef.current || loading) return;
+    if (!medusaCart && !isDemoCheckout) {
       setCheckoutNotice('Your private selection could not be retrieved. Please reopen the cart.');
       return;
     }
+    requestRef.current = true;
+    paymentAttemptRef.current = crypto.randomUUID();
     setLoading(true);
+    setPaymentState('preparing');
     setCheckoutNotice('');
     const data = new FormData(event.currentTarget);
     try {
+      if (isDemoCheckout) {
+        setPaymentState('verifying');
+        const reservation = createDemoReservation({
+          items: cart.map((item) => ({ name: item.name, quantity: item.quantity, unitPrice: item.price })),
+          paymentMethod: String(data.get('payment') || 'UPI'),
+          deliveryAddress: [
+            `${String(data.get('firstName') || '')} ${String(data.get('lastName') || '')}`.trim(),
+            String(data.get('address') || ''),
+            `${String(data.get('city') || '')} ${String(data.get('postalCode') || '')}`.trim(),
+            'India',
+          ].filter(Boolean),
+        });
+        clearCart();
+        router.replace(`/success?reservation_id=${encodeURIComponent(reservation.id)}`);
+        return;
+      }
+      if (!medusaCart) return;
       let updatedCart = await setCheckoutDetails(
         medusaCart.id,
         String(data.get('email') || ''),
@@ -56,15 +76,32 @@ export default function CheckoutPage() {
         }
       );
       updatedCart = await selectFirstShippingMethod(updatedCart.id);
-      const preparation = await prepareCheckout(updatedCart);
-      await loadCart();
-      setCheckoutNotice(preparation.paymentConfigured
-        ? 'Payment session prepared. Continue with the configured secure provider to complete this reservation.'
-        : 'Payment provider is not configured yet. Reservation preview is ready.');
-    } catch {
-      setCheckoutNotice('Checkout is not configured for this selection yet. Your cart has been kept safely.');
+      const preparation = await prepareCheckout(updatedCart, paymentAttemptRef.current);
+      if (!preparation.paymentConfigured) {
+        setPaymentState('failed');
+        setCheckoutNotice('Secure payment is not configured for this region yet. Your selection remains safely in the cart.');
+        return;
+      }
+      if (preparation.hostedPaymentUrl) {
+        setPaymentState('gateway');
+        window.location.assign(preparation.hostedPaymentUrl);
+        return;
+      }
+      // Some Medusa providers authorize within their server-side payment session.
+      // Completion is the trusted verification point and returns an order only on
+      // verified authorization; a cart response is never treated as success.
+      setPaymentState('verifying');
+      const order = await completeVerifiedCheckout(updatedCart.id, paymentAttemptRef.current);
+      sessionStorage.setItem('noir_oak_verified_order_id', order.id);
+      clearCart();
+      router.replace(`/success?order_id=${encodeURIComponent(order.id)}`);
+    } catch (error) {
+      setPaymentState('failed');
+      setCheckoutNotice(error instanceof Error ? error.message : 'Payment could not be verified. Your selection is still reserved in the cart.');
     } finally {
       setLoading(false);
+      requestRef.current = false;
+      paymentAttemptRef.current = null;
     }
   };
 
@@ -102,19 +139,26 @@ export default function CheckoutPage() {
               </div>
             </section>
 
-            <fieldset>
-              <legend className="mb-6 w-full border-b border-[rgba(241,232,216,0.08)] pb-4 font-serif text-2xl text-[#F1E8D8]">Payment</legend>
-              <p className="mb-5 text-sm font-light text-[rgba(241,232,216,0.7)]">Choose one pre-paid payment option.</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {PAYMENT_OPTIONS.map(([value, title, note], index) => (
-                  <label key={value} className="flex min-h-20 items-start gap-4 border border-[rgba(200,164,93,0.18)] bg-[#0D0B09] p-4 has-[:checked]:border-[#D9B86C]/65 has-[:checked]:bg-[rgba(200,164,93,0.08)]">
-                    <input type="radio" name="payment" value={value} required defaultChecked={index === 0} className="mt-1 accent-[#D9B86C]" />
-                    <span><span className="block text-sm text-[#F1E8D8]">{title}</span><span className="mt-1 block text-xs font-light text-[rgba(241,232,216,0.6)]">{note}</span></span>
-                  </label>
-                ))}
-              </div>
-              <p className="mt-4 border-l border-[#D9B86C]/35 pl-4 text-xs font-light leading-relaxed text-[rgba(241,232,216,0.68)]">COD unavailable for Lot 1. A secure payment route becomes active after a production payment provider is configured in Medusa.</p>
-            </fieldset>
+            {isDemoCheckout ? (
+              <fieldset>
+                <legend className="mb-6 w-full border-b border-[rgba(241,232,216,0.08)] pb-4 font-serif text-2xl text-[#F1E8D8]">Demo payment method</legend>
+                <p className="mb-5 text-sm font-light text-[rgba(241,232,216,0.7)]">Choose a method to complete the visual demo. No payment details are requested or processed.</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[['upi', 'UPI'], ['card', 'Card'], ['razorpay', 'Razorpay'], ['cashfree', 'Cashfree']].map(([value, label], index) => (
+                    <label key={value} className="flex min-h-16 items-center gap-4 border border-[rgba(200,164,93,0.18)] bg-[#0D0B09] p-4 has-[:checked]:border-[#D9B86C]/65 has-[:checked]:bg-[rgba(200,164,93,0.08)]">
+                      <input type="radio" name="payment" value={label} required defaultChecked={index === 0} className="accent-[#D9B86C]" />
+                      <span className="text-sm text-[#F1E8D8]">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ) : (
+              <fieldset>
+                <legend className="mb-6 w-full border-b border-[rgba(241,232,216,0.08)] pb-4 font-serif text-2xl text-[#F1E8D8]">Secure payment</legend>
+                <p className="text-sm font-light text-[rgba(241,232,216,0.7)]">Your configured Medusa payment provider opens after delivery details are validated. Payment is verified by the provider and backend before an order is confirmed.</p>
+                <p className="mt-4 border-l border-[#D9B86C]/35 pl-4 text-xs font-light leading-relaxed text-[rgba(241,232,216,0.68)]">Pre-paid only. No card, UPI, or payment credentials are collected by this storefront.</p>
+              </fieldset>
+            )}
 
             <label className="flex items-start gap-4 border-t border-[rgba(241,232,216,0.08)] pt-6">
               <input type="checkbox" required className="mt-1 accent-[#D9B86C]" />
@@ -140,7 +184,7 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-[rgba(241,232,216,0.7)]"><dt>Shipping</dt><dd className="text-[#D9B86C]">{shipping ? formatPrice(shipping, currencyCode) : 'Calculated at confirmation'}</dd></div>
                 <div className="flex justify-between border-t border-[rgba(241,232,216,0.08)] pt-5 font-serif text-2xl text-[#F1E8D8]"><dt>Total</dt><dd className="text-[#D9B86C]">{formatPrice(total, currencyCode)}</dd></div>
               </dl>
-              <button type="submit" disabled={loading} className="btn-foil mt-7 w-full disabled:opacity-55"><span className="btn-label">{loading ? 'Recording reservation' : 'Confirm pre-paid reservation'}</span></button>
+              <button type="submit" disabled={loading} className="btn-foil mt-7 w-full disabled:opacity-55"><span className="btn-label">{paymentState === 'preparing' ? 'Preparing payment' : paymentState === 'gateway' ? 'Opening secure payment' : paymentState === 'verifying' ? (isDemoCheckout ? 'Placing demo order' : 'Verifying payment') : paymentState === 'failed' ? 'Try payment again' : (isDemoCheckout ? 'Place demo order' : 'Continue to secure payment')}</span></button>
               {checkoutNotice && <p role="status" className="mt-4 border-l border-[#D9B86C]/40 pl-4 text-xs font-light leading-relaxed text-[rgba(241,232,216,0.72)]">{checkoutNotice}</p>}
               <p className="mt-4 text-center text-xs font-light leading-relaxed text-[rgba(241,232,216,0.58)]">Delivery timing is confirmed with the reservation note.</p>
             </div>

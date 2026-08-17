@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from '@/components/transitions/LuxuryLink';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,7 +8,7 @@ import { ShoppingBag, Menu, X } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 
 // ─── style constants ──────────────────────────────────────────────────────────
-const NAV_LINK_BASE   = `nav-link text-[13px] tracking-[0.06em] font-[450] transition-all duration-300`;
+const NAV_LINK_BASE   = `nav-link text-[13px] tracking-[0.06em] font-[450] transition-colors duration-300`;
 const NAV_LINK_IDLE   = `text-[rgba(245,235,221,0.70)]`;
 const NAV_LINK_ACTIVE = `text-[#C9A45C] [text-shadow:0_0_14px_rgba(201,164,92,0.30)]`;
 const NAV_LINK_HOVER  = `hover:text-[#E2C176] hover:[text-shadow:0_0_16px_rgba(201,164,92,0.28)]`;
@@ -22,11 +22,20 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen,   setDropdownOpen]   = useState(false);
   const pathname = usePathname();
-  const { user, logout, setCartOpen, cart } = useStore();
+  const user = useStore((state) => state.user);
+  const logout = useStore((state) => state.logout);
+  const setCartOpen = useStore((state) => state.setCartOpen);
+  const cart = useStore((state) => state.cart);
+  const headerRef = useRef<HTMLElement>(null);
+  const scrollPosition = useRef(0);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => {
+      const next = window.scrollY > 50;
+      setIsScrolled((current) => current === next ? current : next);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -40,14 +49,30 @@ export default function Header() {
   // While the full-screen drawer is open: lock body scroll and close on Escape.
   useEffect(() => {
     if (!mobileMenuOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    scrollPosition.current = window.scrollY;
+    const bodyStyle = document.body.style;
+    const previous = { position: bodyStyle.position, top: bodyStyle.top, width: bodyStyle.width, overflow: bodyStyle.overflow };
+    bodyStyle.position = 'fixed';
+    bodyStyle.top = `-${scrollPosition.current}px`;
+    bodyStyle.width = '100%';
+    bodyStyle.overflow = 'hidden';
+    const headerElement = headerRef.current;
+    headerElement?.setAttribute('inert', '');
+    document.querySelector('main')?.setAttribute('inert', '');
+    document.querySelector('footer')?.setAttribute('inert', '');
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMobileMenuOpen(false);
     };
     window.addEventListener('keydown', onKey);
     return () => {
-      document.body.style.overflow = prevOverflow;
+      bodyStyle.position = previous.position;
+      bodyStyle.top = previous.top;
+      bodyStyle.width = previous.width;
+      bodyStyle.overflow = previous.overflow;
+      headerElement?.removeAttribute('inert');
+      document.querySelector('main')?.removeAttribute('inert');
+      document.querySelector('footer')?.removeAttribute('inert');
+      window.scrollTo(0, scrollPosition.current);
       window.removeEventListener('keydown', onKey);
     };
   }, [mobileMenuOpen]);
@@ -62,8 +87,8 @@ export default function Header() {
 
   // ── Navbar background: always present, stronger when scrolled ──────────────
   const headerBg = isScrolled
-    ? 'bg-[#020202]/92 backdrop-blur-xl border-b border-[#C9A45C]/40 shadow-[0_12px_40px_rgba(0,0,0,0.55)] py-3 md:py-5'
-    : 'backdrop-blur-[6px] border-b border-[#C9A45C]/25 shadow-[0_12px_40px_rgba(0,0,0,0.38)] py-3 md:py-7';
+    ? 'bg-[#020202]/92 md:backdrop-blur-xl border-b border-[#C9A45C]/40 shadow-[0_12px_40px_rgba(0,0,0,0.55)] py-3 md:py-5'
+    : 'md:backdrop-blur-[6px] border-b border-[#C9A45C]/25 shadow-[0_12px_40px_rgba(0,0,0,0.38)] py-3 md:py-7';
 
   const headerGradient = isScrolled
     ? {}
@@ -75,7 +100,8 @@ export default function Header() {
   return (
     <>
       <header
-        className={`fixed top-0 w-full z-[20] transition-all duration-700 ${headerBg}`}
+        ref={headerRef}
+        className={`site-header fixed top-0 w-full z-[20] transition-[background-color,border-color,padding,box-shadow] duration-300 ${headerBg}`}
         style={headerGradient}
       >
         <div className="max-w-[90rem] mx-auto px-6 md:px-16 flex justify-between items-center">
@@ -113,7 +139,7 @@ export default function Header() {
               NOIR &amp; OAK
               <div
                 className={`h-[1px] bg-gradient-to-r from-transparent via-[#C9A45C]/50 to-transparent
-                             transition-all duration-700 ${isScrolled ? 'w-full opacity-100' : 'w-0 opacity-0'}`}
+                             w-full origin-center transition-[transform,opacity] duration-300 ${isScrolled ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'}`}
               />
             </Link>
           </div>
@@ -202,7 +228,7 @@ export default function Header() {
             {/* Cart / Reserve button */}
             <button
               onClick={() => setCartOpen(true)}
-              className="flex items-center gap-2 relative transition-all duration-300
+              className="flex items-center gap-2 relative transition-colors duration-300
                          text-[rgba(245,235,221,0.70)] hover:text-[#C9A45C]
                          text-[11px] uppercase tracking-[0.2em] font-[500]
                          hover:[text-shadow:0_0_16px_rgba(201,164,92,0.28)]"
@@ -211,7 +237,7 @@ export default function Header() {
               <ShoppingBag
                 size={15}
                 strokeWidth={1.6}
-                className="transition-all duration-300 hover:[filter:drop-shadow(0_0_8px_rgba(201,164,92,0.35))]"
+                className="transition-colors duration-300"
               />
               {cartCount > 0 && (
                 <span className="absolute -top-2 -right-3 w-4 h-4 bg-[#C9A45C] text-[#050505] rounded-full flex items-center justify-center text-[8px] font-bold">
@@ -261,7 +287,7 @@ export default function Header() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
-            className="fixed inset-0 z-[60] min-h-dvh bg-[#020202]/97 backdrop-blur-3xl flex flex-col noise-bg overflow-y-auto"
+            className="fixed inset-0 z-[60] min-h-[100dvh] bg-[#020202] flex flex-col noise-bg overflow-y-auto"
           >
             <div className="flex justify-between items-center px-6 py-5 border-b border-[#C9A45C]/15">
               <span className="font-serif text-lg tracking-[0.18em] text-[#C9A45C]">NOIR &amp; OAK</span>
@@ -278,9 +304,9 @@ export default function Header() {
               {navLinks.map((link, i) => (
                 <motion.div
                   key={link.name}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.08 + 0.1, duration: 0.7 }}
+                  transition={{ delay: i * 0.03, duration: 0.2 }}
                   className="w-full border-b border-[rgba(200,164,93,0.14)]"
                 >
                   <Link

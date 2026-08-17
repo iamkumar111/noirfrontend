@@ -15,12 +15,12 @@ export default function PageReveal({ children }: { children: React.ReactNode }) 
   return (
     <motion.div
       key={pathname}
-      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 18 }}
+      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
       animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
       transition={{
-        duration: reduce ? 0.15 : 0.7,
+        duration: reduce ? 0.12 : 0.22,
         ease: [0.22, 1, 0.36, 1],
-        delay: reduce ? 0 : 0.05,
+        delay: 0,
       }}
     >
       {children}

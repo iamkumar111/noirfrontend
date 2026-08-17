@@ -21,7 +21,7 @@ export default function LuxuryPosterHero({ canPlay = false }: { canPlay?: boolea
       <HeroCinematicBackground canPlay={canPlay} />
 
       {/* Gold dust drifting L→R behind the emblem (upper area only, never text) */}
-      <div className="absolute inset-x-0 top-0 h-[52%] z-[3] pointer-events-none overflow-hidden">
+      <div className="absolute inset-x-0 top-0 hidden h-[52%] z-[3] pointer-events-none overflow-hidden md:block">
         <motion.div
           animate={{ x: ['-8%', '8%'], opacity: [0.18, 0.32, 0.18] }}
           transition={{ duration: 26, repeat: Infinity, ease: 'linear' }}

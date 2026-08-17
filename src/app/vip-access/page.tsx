@@ -21,17 +21,15 @@ export default function VIPAccessPage() {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     setStatus('submitting');
-    window.setTimeout(() => {
-      login({
-        id: `temp-${Date.now()}`,
-        name: String(data.get('name') || 'Preview Guest'),
-        email: String(data.get('email') || 'preview@noiroak.com'),
-        role: 'vip',
-        city: String(data.get('city') || ''),
-        phone: String(data.get('phone') || ''),
-      });
-      setStatus('success');
-    }, 1100);
+    login({
+      id: `temp-${Date.now()}`,
+      name: String(data.get('name') || 'Preview Guest'),
+      email: String(data.get('email') || 'preview@noiroak.com'),
+      role: 'vip',
+      city: String(data.get('city') || ''),
+      phone: String(data.get('phone') || ''),
+    });
+    setStatus('success');
   };
 
   return (

@@ -30,7 +30,10 @@ const PACKAGING = [
 ];
 
 export default function Home() {
-  const { isIntroSeen, products, catalogStatus, catalogError } = useStore();
+  const isIntroSeen = useStore((state) => state.isIntroSeen);
+  const products = useStore((state) => state.products);
+  const catalogStatus = useStore((state) => state.catalogStatus);
+  const catalogError = useStore((state) => state.catalogError);
   const leadProduct = products.find((product) => product.id === 'curated-collection-box') || products[0];
   const sideProducts = products.filter((product) => ['dark-chocolate-almonds', 'parmesan-makhana'].includes(product.id));
 

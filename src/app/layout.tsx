@@ -5,17 +5,20 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Providers from "@/components/Providers";
 import PageReveal from "@/components/transitions/PageReveal";
+import LuxuryRouteTransition from "@/components/transitions/LuxuryRouteTransition";
+import IntroGate from "@/components/IntroGate";
+import CartDrawer from "@/components/CartDrawer";
 
 const cormorant = Cormorant_Garamond({ 
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-serif",
+  display: "swap",
 });
 
 const inter = Inter({ 
   subsets: ["latin"],
-  weight: ["300", "400", "500"],
   variable: "--font-sans",
+  display: "swap",
 });
 
 const SITE_URL = "https://noiroak.com";
@@ -93,7 +96,6 @@ export default function RootLayout({
       lang="en"
       className={`${cormorant.variable} ${inter.variable}`}
       style={{ backgroundColor: '#090806' }}
-      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <body
@@ -101,11 +103,16 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Providers>
-          <Header />
-          <main className="relative z-10">
-            <PageReveal>{children}</PageReveal>
-          </main>
-          <Footer />
+          <LuxuryRouteTransition>
+            <IntroGate>
+              <Header />
+              <main id="site-content" className="relative z-10">
+                <PageReveal>{children}</PageReveal>
+              </main>
+              <Footer />
+              <CartDrawer />
+            </IntroGate>
+          </LuxuryRouteTransition>
         </Providers>
       </body>
     </html>

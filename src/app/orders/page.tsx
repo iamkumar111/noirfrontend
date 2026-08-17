@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import Link from '@/components/transitions/LuxuryLink';
-import { demoReservations, formatReservationTotal } from '@/lib/reservations';
+import { formatReservationTotal, getReservations } from '@/lib/reservations';
 
 export default function OrdersPage() {
   const { user, hasHydrated } = useStore();
@@ -17,6 +17,7 @@ export default function OrdersPage() {
   }, [hasHydrated, user, router]);
 
   if (!hasHydrated || !user) return null;
+  const reservations = getReservations();
 
   return (
     <div className="min-h-screen bg-[#020202] section-top pb-24 md:pb-40 px-5 md:px-6 relative noise-bg z-10">
@@ -29,7 +30,7 @@ export default function OrdersPage() {
         </div>
 
         <div className="space-y-8">
-          {demoReservations.map((order) => (
+          {reservations.map((order) => (
             <div key={order.id} className="reservation-card bg-[#050505] p-8 md:p-10 metallic-border flex flex-col md:flex-row justify-between gap-8 md:items-center">
               <div>
                 <div className="flex items-center gap-4 mb-4">

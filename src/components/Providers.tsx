@@ -1,9 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import CartDrawer from "./CartDrawer";
-import IntroGate from "./IntroGate";
-import LuxuryRouteTransition from "./transitions/LuxuryRouteTransition";
 import { useStore } from "@/store/useStore";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -13,12 +10,5 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     void initializeMedusa();
   }, [initializeMedusa]);
 
-  return (
-    <LuxuryRouteTransition>
-      <IntroGate>
-        {children}
-        <CartDrawer />
-      </IntroGate>
-    </LuxuryRouteTransition>
-  );
+  return <>{children}</>;
 }

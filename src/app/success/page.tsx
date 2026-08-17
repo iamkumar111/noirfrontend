@@ -1,68 +1,91 @@
 "use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { useStore } from '@/store/useStore';
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { motion, useReducedMotion } from "framer-motion";
+import Link from "@/components/transitions/LuxuryLink";
+import { useStore } from "@/store/useStore";
+import { retrieveVerifiedOrder } from "@/lib/medusa/checkout";
+import { formatPrice } from "@/lib/medusa/products";
+import type { ConfirmedOrder } from "@/lib/medusa/types";
+import { formatReservationTotal, getReservationById } from "@/lib/reservations";
 
-export default function SuccessPage() {
-  const { user, hasHydrated } = useStore();
+function SuccessContent() {
+  const user = useStore((state) => state.user);
+  const hasHydrated = useStore((state) => state.hasHydrated);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const reduceMotion = useReducedMotion();
+  const [order, setOrder] = useState<ConfirmedOrder | null>(null);
+  const [state, setState] = useState<"verifying" | "confirmed" | "unavailable">("verifying");
+  const orderId = searchParams.get("order_id");
+  const reservationId = searchParams.get("reservation_id");
+  const demoReservation = reservationId ? getReservationById(reservationId) : null;
+  const unavailable = !orderId || !user;
 
   useEffect(() => {
-    if (hasHydrated && !user) {
-      router.push('/login');
-    }
-  }, [hasHydrated, user, router]);
+    if (hasHydrated && !user) router.replace("/login");
+  }, [hasHydrated, router, user]);
+
+  useEffect(() => {
+    if (!orderId || !user) return;
+    let active = true;
+    retrieveVerifiedOrder(orderId)
+      .then((verifiedOrder) => {
+        if (!active || verifiedOrder.id !== orderId) return;
+        setOrder(verifiedOrder);
+        setState("confirmed");
+      })
+      .catch(() => { if (active) setState("unavailable"); });
+    return () => { active = false; };
+  }, [orderId, user]);
 
   if (!hasHydrated || !user) return null;
-  const reservationId = `NOIR-OAK-${user.id.slice(-6).toUpperCase().padStart(6, '0')}`;
+  if (demoReservation) {
+    return (
+      <div className="section-top relative z-10 flex min-h-[100svh] items-center justify-center overflow-hidden bg-[#020202] px-5 pb-24 md:px-6">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_36%,rgba(126,95,39,.19),transparent_32%),radial-gradient(circle_at_center,#111_0%,#020202_70%)]" />
+        <motion.section initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? .12 : .32 }} className="relative z-10 w-full max-w-2xl border border-[#C9A45C]/25 bg-[#090806] p-7 text-center md:p-12">
+          <motion.div className="mx-auto mb-7 h-px w-28 bg-[#C9A45C]" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: reduceMotion ? .1 : .55 }} />
+          <div className="mx-auto mb-7 grid h-16 w-16 place-items-center rounded-full border border-[#C9A45C]/45 text-[#D9B86C]"><svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" stroke="currentColor"><path d="m5 12 4 4L19 7" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" /></svg></div>
+          <p className="eyebrow text-[#D9B86C]">DEMO RESERVATION</p>
+          <h1 className="mt-4 font-serif text-4xl text-[#F1E8D8] md:text-5xl">Your demo order is confirmed</h1>
+          <p className="mt-4 text-sm font-light text-[rgba(241,232,216,.74)]">No payment was collected. Your order has been saved locally for this demo.</p>
+          <dl className="mt-9 border-y border-[rgba(200,164,93,.2)] text-left">
+            <div className="flex justify-between gap-6 py-4"><dt className="text-[10px] uppercase tracking-[.14em] text-[rgba(241,232,216,.58)]">Order ID</dt><dd className="font-mono text-sm text-[#E0C17A]">{demoReservation.id}</dd></div>
+            {demoReservation.items.map((item) => <div key={item.name} className="flex justify-between gap-6 border-t border-[rgba(241,232,216,.08)] py-4 text-sm"><dt className="font-light text-[#F1E8D8]">{item.name} <span className="text-[rgba(241,232,216,.55)]">× {item.quantity}</span></dt><dd className="text-[#D9B86C]">{formatReservationTotal(item.unitPrice * item.quantity)}</dd></div>)}
+            <div className="flex justify-between gap-6 border-t border-[rgba(241,232,216,.08)] py-5 font-serif text-xl text-[#F1E8D8]"><dt>Demo total</dt><dd className="text-[#D9B86C]">{formatReservationTotal(demoReservation.total)}</dd></div>
+          </dl>
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:justify-center"><Link href={`/orders/${demoReservation.id}`} className="btn-foil"><span className="btn-label">View order</span></Link><Link href="/collection" className="btn-quiet">Continue exploring</Link></div>
+        </motion.section>
+      </div>
+    );
+  }
+  if (state !== "confirmed" || !order) {
+    const isVerifying = !unavailable && state === "verifying";
+    return <div className="section-top flex min-h-[100svh] items-center justify-center bg-[#020202] px-5 text-center"><div className="max-w-md"><p className="eyebrow text-[#D9B86C]">{isVerifying ? "Verifying payment" : "Order confirmation unavailable"}</p><h1 className="mt-5 font-serif text-4xl text-[#F1E8D8]">{isVerifying ? "Securing your selection." : "We could not verify this order."}</h1><p className="mt-5 text-sm font-light leading-relaxed text-[rgba(241,232,216,.7)]">{isVerifying ? "We are confirming your payment with the secure order service." : "Your cart has not been altered. Return to checkout to review your payment status."}</p><Link href="/checkout" className="btn-quiet mt-8">Return to checkout</Link></div></div>;
+  }
 
+  const address = order.shipping_address;
   return (
-    <div className="min-h-screen bg-[#020202] flex items-center justify-center section-top px-5 md:px-6 pb-24 md:pb-32 relative noise-bg z-10 overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#111_0%,_#020202_70%)] pointer-events-none opacity-80"></div>
-      
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] as const }}
-        className="w-full max-w-lg bg-[#050505] p-10 md:p-14 relative z-20 shadow-[0_0_80px_rgba(0,0,0,1)] metallic-border text-center"
-      >
-        <div className="w-20 h-20 border border-[#C9A45C]/30 rounded-full mx-auto mb-10 flex items-center justify-center bg-[#0A0A0A] metallic-border relative overflow-hidden group">
-           <motion.div 
-             initial={{ scale: 0 }}
-             animate={{ scale: 1 }}
-             transition={{ delay: 0.5, type: "spring", stiffness: 100 }}
-           >
-             <svg className="w-8 h-8 text-[#C9A45C]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M5 13l4 4L19 7" />
-             </svg>
-           </motion.div>
-        </div>
-
-        <h1 className="text-3xl font-serif text-[#C9A45C] mb-4 tracking-tight">Reservation Confirmed</h1>
-        <p className="text-sm text-[#E8E1D5]/50 leading-relaxed font-light tracking-wide mb-10">
-          Your NOIR & OAK Lot 1 reservation has been successfully recorded. You will receive a member update shortly.
-        </p>
-
-        <div className="bg-[#020202] border border-[#C9A45C]/10 p-6 mb-10">
-          <span className="text-[8px] uppercase tracking-[0.3em] text-[#C9A45C]/60 block mb-2">Reservation ID</span>
-          <span className="font-mono text-[#E8E1D5] tracking-widest text-lg">{reservationId}</span>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <Link href="/dashboard" className="w-full group relative px-10 py-5 bg-[#0A0A0A] overflow-hidden metallic-border block">
-            <div className="absolute inset-0 bg-gradient-to-r from-[#C9A45C]/0 via-[#C9A45C]/10 to-[#C9A45C]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-            <span className="relative z-10 uppercase tracking-[0.3em] text-[10px] font-medium text-[#C9A45C] group-hover:text-[#FDF5E6] transition-colors duration-500">
-              View Dashboard
-            </span>
-          </Link>
-          <Link href="/collection" className="text-[9px] uppercase tracking-[0.3em] text-[#E8E1D5]/40 hover:text-[#C9A45C] transition-colors mt-4 inline-block">
-            Continue Exploring
-          </Link>
-        </div>
-      </motion.div>
+    <div className="section-top relative z-10 flex min-h-[100svh] items-center justify-center overflow-hidden bg-[#020202] px-5 pb-24 md:px-6">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_36%,rgba(126,95,39,.19),transparent_32%),radial-gradient(circle_at_center,#111_0%,#020202_70%)]" />
+      <motion.section initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? .12 : .32 }} className="relative z-10 w-full max-w-2xl border border-[#C9A45C]/25 bg-[#090806] p-7 text-center md:p-12">
+        <motion.div className="mx-auto mb-7 h-px w-28 bg-[#C9A45C]" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: reduceMotion ? .1 : .55 }} />
+        <div className="mx-auto mb-7 grid h-16 w-16 place-items-center rounded-full border border-[#C9A45C]/45 text-[#D9B86C]"><svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" stroke="currentColor"><path d="m5 12 4 4L19 7" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" /></svg></div>
+        <p className="eyebrow text-[#D9B86C]">NOIR &amp; OAK</p>
+        <h1 className="mt-4 font-serif text-4xl text-[#F1E8D8] md:text-5xl">Your Order Is Confirmed</h1>
+        <p className="mt-4 text-sm font-light text-[rgba(241,232,216,.74)]">Your selection has been secured.</p>
+        <dl className="mt-9 border-y border-[rgba(200,164,93,.2)] text-left">
+          <div className="flex justify-between gap-6 py-4"><dt className="text-[10px] uppercase tracking-[.14em] text-[rgba(241,232,216,.58)]">Order ID</dt><dd className="font-mono text-sm text-[#E0C17A]">{order.display_id || order.id}</dd></div>
+          {(order.items || []).map((item) => <div key={item.id} className="flex justify-between gap-6 border-t border-[rgba(241,232,216,.08)] py-4 text-sm"><dt className="font-light text-[#F1E8D8]">{item.title} <span className="text-[rgba(241,232,216,.55)]">× {item.quantity}</span></dt><dd className="text-[#D9B86C]">{formatPrice(item.total || 0, order.currency_code || null)}</dd></div>)}
+          <div className="flex justify-between gap-6 border-t border-[rgba(241,232,216,.08)] py-5 font-serif text-xl text-[#F1E8D8]"><dt>Total paid</dt><dd className="text-[#D9B86C]">{formatPrice(order.total || 0, order.currency_code || null)}</dd></div>
+        </dl>
+        {address && <p className="mt-5 text-xs font-light leading-relaxed text-[rgba(241,232,216,.62)]">Delivery to {address.city}{address.postal_code ? ` · ${address.postal_code}` : ""}</p>}
+        <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:justify-center"><Link href={`/orders/${order.id}`} className="btn-foil"><span className="btn-label">View Order</span></Link><Link href="/collection" className="btn-quiet">Continue Exploring</Link></div>
+      </motion.section>
     </div>
   );
 }
+
+export default function SuccessPage() { return <Suspense fallback={null}><SuccessContent /></Suspense>; }

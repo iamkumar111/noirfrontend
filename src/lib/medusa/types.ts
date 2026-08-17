@@ -63,6 +63,7 @@ export interface CartItem {
   batchCode?: string
   packaging?: string
   weight?: string
+  maxQuantity?: number | null
 }
 
 export type MedusaCart = HttpTypes.StoreCart
@@ -82,7 +83,9 @@ export interface CheckoutPreparation {
   cart: MedusaCart
   paymentConfigured: boolean
   paymentProviderId?: string
+  hostedPaymentUrl?: string
 }
 
-export type Product = NoirProduct
+export type ConfirmedOrder = HttpTypes.StoreOrder
 
+export type Product = NoirProduct

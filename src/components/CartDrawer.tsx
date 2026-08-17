@@ -1,19 +1,28 @@
 "use client";
 
+import { memo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Lock, Trash2, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
 import { useStore } from '@/store/useStore';
+import type { CartItem } from '@/lib/medusa/types';
 import { useLuxuryNavigation } from '@/hooks/useLuxuryNavigation';
 import { formatPrice } from '@/lib/medusa/products';
 
 export default function CartDrawer() {
-  const { isCartOpen, setCartOpen, cart, medusaCart, cartStatus, cartError, removeFromCart, updateQuantity, user } = useStore();
+  const isCartOpen = useStore((state) => state.isCartOpen);
+  const setCartOpen = useStore((state) => state.setCartOpen);
+  const cart = useStore((state) => state.cart);
+  const medusaCart = useStore((state) => state.medusaCart);
+  const cartMode = useStore((state) => state.cartMode);
+  const cartStatus = useStore((state) => state.cartStatus);
+  const cartError = useStore((state) => state.cartError);
+  const user = useStore((state) => state.user);
   const { navigate } = useLuxuryNavigation();
 
-  const subtotal = medusaCart?.subtotal ?? cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const total = medusaCart?.total ?? subtotal;
-  const currencyCode = medusaCart?.currency_code || null;
+  const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const total = subtotal;
+  const currencyCode = medusaCart?.currency_code || (cartMode === 'demo' ? 'inr' : null);
 
   const handleCheckout = () => {
     setCartOpen(false);
@@ -33,13 +42,13 @@ export default function CartDrawer() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setCartOpen(false)}
-            className="fixed inset-0 bg-[#020202]/80 backdrop-blur-md z-[70]"
+            className="cart-backdrop fixed inset-0 bg-[#020202]/80 z-[70]"
           />
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'tween', duration: 0.8, ease: [0.16, 1, 0.3, 1] as const }}
+            transition={{ type: 'tween', duration: 0.24, ease: [0.16, 1, 0.3, 1] as const }}
             className="fixed top-0 right-0 h-full w-full max-w-md bg-[#050505] border-l border-[#C9A45C]/10 z-[80] flex flex-col noise-bg shadow-[0_0_100px_rgba(0,0,0,1)]"
           >
             <div className="flex justify-between items-center p-5 sm:p-8 border-b border-white/5 relative z-10">
@@ -70,44 +79,7 @@ export default function CartDrawer() {
                 </div>
               ) : (
                 <div className="space-y-8">
-                  {cart.map((item, idx) => (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.1, duration: 0.5 }}
-                      key={item.id} 
-                      className="flex gap-6 items-center"
-                    >
-                      <div className="w-20 h-24 border border-[rgba(200,164,93,0.16)] bg-[#0a0a0a] shadow-lg relative overflow-hidden shrink-0">
-                        {item.image ? (
-                          <Image src={item.image} alt="" fill sizes="80px" className="object-contain p-2" />
-                        ) : (
-                          <div className="absolute inset-0 opacity-40" style={{ background: item.imagePlaceholder }} />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-serif text-lg leading-tight mb-1 text-[#E8E1D5] font-light">{item.name}</h4>
-                        <p className="mb-1 text-[9px] uppercase tracking-[0.12em] text-[rgba(241,232,216,0.58)]">{item.batchCode || 'Lot 1'} {item.weight ? ` / ${item.weight}` : ''}</p>
-                        {item.packaging && <p className="mb-3 text-[11px] leading-snug text-[rgba(241,232,216,0.68)]">{item.packaging}</p>}
-                        <p className="text-[#C9A45C] font-light text-sm mb-4">{formatPrice(item.price, currencyCode)}</p>
-                        
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-3 border border-white/10 px-3 py-1">
-                            <button disabled={cartStatus === 'loading'} aria-label={`Decrease quantity of ${item.name}`} onClick={() => void updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="h-7 w-7 flex items-center justify-center text-[#E8E1D5]/65 hover:text-[#C9A45C] disabled:opacity-40">
-                              <Minus size={10} />
-                            </button>
-                            <span className="text-xs text-[#E8E1D5] w-4 text-center">{item.quantity}</span>
-                            <button disabled={cartStatus === 'loading'} aria-label={`Increase quantity of ${item.name}`} onClick={() => void updateQuantity(item.id, item.quantity + 1)} className="h-7 w-7 flex items-center justify-center text-[#E8E1D5]/65 hover:text-[#C9A45C] disabled:opacity-40">
-                              <Plus size={10} />
-                            </button>
-                          </div>
-                          <button disabled={cartStatus === 'loading'} aria-label={`Remove ${item.name}`} onClick={() => void removeFromCart(item.id)} className="h-9 w-9 flex items-center justify-center text-[#E8E1D5]/55 hover:text-red-300 transition-colors ml-auto disabled:opacity-40">
-                            <Trash2 size={14} strokeWidth={1.5} />
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                  {cart.map((item) => <CartLine key={item.id} item={item} currencyCode={currencyCode} />)}
                 </div>
               )}
 
@@ -120,7 +92,7 @@ export default function CartDrawer() {
                     <span className="text-[9px] uppercase tracking-[0.16em] font-medium">Reservation note</span>
                   </div>
                   <p className="text-xs text-[rgba(217,208,192,0.68)] leading-relaxed font-light tracking-wide relative z-10">
-                    Pre-paid access only. Cash on Delivery is unavailable for Lot 1.
+                    {cartMode === 'demo' ? 'Demo selection only. No payment will be collected.' : 'Pre-paid access only. Cash on Delivery is unavailable for Lot 1.'}
                   </p>
                 </div>
               )}
@@ -158,3 +130,31 @@ export default function CartDrawer() {
     </AnimatePresence>
   );
 }
+
+const CartLine = memo(function CartLine({ item, currencyCode }: { item: CartItem; currencyCode: string | null }) {
+  const updateQuantity = useStore((state) => state.updateQuantity);
+  const removeFromCart = useStore((state) => state.removeFromCart);
+  const max = item.maxQuantity ?? Number.POSITIVE_INFINITY;
+  const change = useCallback((delta: number) => void updateQuantity(item.id, item.quantity + delta), [item.id, item.quantity, updateQuantity]);
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .2 }} className="flex gap-6 items-center">
+      <div className="relative h-24 w-20 shrink-0 overflow-hidden border border-[rgba(200,164,93,0.16)] bg-[#0a0a0a] shadow-lg">
+        {item.image ? <Image src={item.image} alt="" fill sizes="80px" className="object-contain p-2" /> : <div className="absolute inset-0 opacity-40" style={{ background: item.imagePlaceholder }} />}
+      </div>
+      <div className="flex-1">
+        <h4 className="mb-1 font-serif text-lg leading-tight font-light text-[#E8E1D5]">{item.name}</h4>
+        <p className="mb-1 text-[9px] uppercase tracking-[0.12em] text-[rgba(241,232,216,0.58)]">{item.batchCode || 'Lot 1'} {item.weight ? ` / ${item.weight}` : ''}</p>
+        {item.packaging && <p className="mb-3 text-[11px] leading-snug text-[rgba(241,232,216,0.68)]">{item.packaging}</p>}
+        <p className="mb-4 text-sm font-light text-[#C9A45C]">{formatPrice(item.price, currencyCode)}</p>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 border border-white/10 px-1">
+            <button type="button" disabled={item.quantity <= 1} aria-label={`Decrease quantity of ${item.name}`} onClick={() => change(-1)} className="h-11 w-11 touch-manipulation text-[#E8E1D5]/65 hover:text-[#C9A45C] disabled:opacity-30"><Minus size={12} className="mx-auto" /></button>
+            <span aria-live="polite" className="w-5 text-center text-xs text-[#E8E1D5]">{item.quantity}</span>
+            <button type="button" disabled={item.quantity >= max} aria-label={`Increase quantity of ${item.name}`} onClick={() => change(1)} className="h-11 w-11 touch-manipulation text-[#E8E1D5]/65 hover:text-[#C9A45C] disabled:opacity-30"><Plus size={12} className="mx-auto" /></button>
+          </div>
+          <button type="button" aria-label={`Remove ${item.name}`} onClick={() => void removeFromCart(item.id)} className="ml-auto h-11 w-11 touch-manipulation text-[#E8E1D5]/55 transition-colors hover:text-red-300"><Trash2 size={14} className="mx-auto" strokeWidth={1.5} /></button>
+        </div>
+      </div>
+    </motion.div>
+  );
+});
