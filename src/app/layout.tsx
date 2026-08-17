@@ -8,6 +8,7 @@ import PageReveal from "@/components/transitions/PageReveal";
 import LuxuryRouteTransition from "@/components/transitions/LuxuryRouteTransition";
 import IntroGate from "@/components/IntroGate";
 import CartDrawer from "@/components/CartDrawer";
+import RecentPurchaseNotifications from "@/components/RecentPurchaseNotifications";
 
 const cormorant = Cormorant_Garamond({ 
   subsets: ["latin"],
@@ -111,6 +112,7 @@ export default function RootLayout({
               </main>
               <Footer />
               <CartDrawer />
+              <RecentPurchaseNotifications />
             </IntroGate>
           </LuxuryRouteTransition>
         </Providers>

@@ -1,61 +1,162 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
-import { useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from 'framer-motion';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-interface HeroCinematicBackgroundProps { canPlay?: boolean }
+interface HeroCinematicBackgroundProps {
+  canPlay?: boolean;
+}
 
-/**
- * One stable video element: it neither remounts for cart/menu/store updates nor
- * competes with a second intro stream. The matching poster stays visible until
- * the first decoded video frame is ready.
- */
+const CROSSFADE_OFFSET_S = 1.4;
+const CROSSFADE_DURATION_S = 1.6;
+const LOOP_OPACITY = 0.28;
+
+let heroIntroPlayedThisSession = false;
+
 export default function HeroCinematicBackground({ canPlay = false }: HeroCinematicBackgroundProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const reduceMotion = useReducedMotion();
-  const [ready, setReady] = useState(false);
+  const introRef = useRef<HTMLVideoElement>(null);
+  const loopRef = useRef<HTMLVideoElement>(null);
+  const [crossfadeStarted, setCrossfadeStarted] = useState(heroIntroPlayedThisSession);
+  const [introComplete, setIntroComplete] = useState(heroIntroPlayedThisSession);
+  const [showVeil, setShowVeil] = useState(!heroIntroPlayedThisSession);
 
-  const play = useCallback(async () => {
-    const video = videoRef.current;
-    if (!video || reduceMotion || document.hidden) return;
-    try { await video.play(); } catch { /* Browser autoplay policy keeps the poster visible. */ }
-  }, [reduceMotion]);
+  const safePlay = useCallback(async (video: HTMLVideoElement | null) => {
+    if (!video || !canPlay || document.hidden) return;
+
+    try {
+      await video.play();
+    } catch (error) {
+      const name = error instanceof DOMException ? error.name : '';
+      if (name !== 'AbortError' && name !== 'NotAllowedError') {
+        console.warn('Hero background video could not play:', error);
+      }
+    }
+  }, [canPlay]);
 
   useEffect(() => {
-    if (!canPlay || reduceMotion) return;
-    void play();
-    const onVisibility = () => { if (!document.hidden) void play(); };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [canPlay, play, reduceMotion]);
+    if (!canPlay) return;
+
+    safePlay(loopRef.current);
+
+    if (!heroIntroPlayedThisSession) {
+      safePlay(introRef.current);
+    }
+
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        safePlay(loopRef.current);
+        if (!heroIntroPlayedThisSession) {
+          safePlay(introRef.current);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [canPlay, safePlay]);
+
+  const handleIntroTimeUpdate = () => {
+    const intro = introRef.current;
+    if (!intro || crossfadeStarted || !Number.isFinite(intro.duration)) return;
+
+    if (intro.duration - intro.currentTime <= CROSSFADE_OFFSET_S) {
+      setCrossfadeStarted(true);
+      setShowVeil(false);
+      safePlay(loopRef.current);
+    }
+  };
+
+  const handleIntroEnded = () => {
+    heroIntroPlayedThisSession = true;
+    setCrossfadeStarted(true);
+    setIntroComplete(true);
+    setShowVeil(false);
+    safePlay(loopRef.current);
+  };
 
   return (
-    <div className="absolute inset-0 z-[1] overflow-hidden bg-[#090806]" aria-hidden="true">
-      <Image
-        src="/images/hero/hero-loop-poster.jpg"
-        alt=""
-        fill
-        priority
-        sizes="100vw"
-        className="object-cover object-center"
+    <div
+      className="absolute inset-0 overflow-hidden z-[1] pointer-events-none select-none"
+      style={{ backgroundColor: '#090806' }}
+      aria-hidden="true"
+    >
+      {/* z-0: velvet gradient base */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 72% 54% at 50% 18%, rgba(38,28,14,0.52) 0%, rgba(8,6,4,0.78) 48%, #090806 86%)',
+        }}
       />
-      {!reduceMotion && (
-        <video
-          ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover object-center"
-          style={{ opacity: ready ? 1 : 0, transition: "opacity 220ms ease-out" }}
-          src="/videos/loopherosection-pingpong.mp4"
-          poster="/images/hero/hero-loop-poster.jpg"
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          onCanPlay={play}
-          onLoadedData={() => setReady(true)}
-        />
-      )}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_72%_58%_at_50%_28%,rgba(31,23,12,.12),rgba(5,4,3,.48)_72%)]" />
+
+      <video
+        ref={loopRef}
+        className="absolute inset-0 z-[1] h-full w-full object-cover opacity-0"
+        style={{
+          opacity: canPlay && crossfadeStarted ? LOOP_OPACITY : 0,
+          transition: `opacity ${CROSSFADE_DURATION_S}s ease`,
+          WebkitMaskImage: 'radial-gradient(ellipse 78% 68% at 50% 44%, black 0%, rgba(0,0,0,0.74) 58%, transparent 100%)',
+          maskImage: 'radial-gradient(ellipse 78% 68% at 50% 44%, black 0%, rgba(0,0,0,0.74) 58%, transparent 100%)',
+        }}
+        src="/videos/loopherosection-pingpong.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        onCanPlay={() => safePlay(loopRef.current)}
+      />
+
+      <AnimatePresence>
+        {canPlay && !introComplete && (
+          <motion.video
+            key="hero-intro"
+            ref={introRef}
+            className="absolute inset-0 z-[2] h-full w-full object-cover"
+            style={{
+              WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 44%, black 0%, rgba(0,0,0,0.78) 58%, transparent 100%)',
+              maskImage: 'radial-gradient(ellipse 80% 70% at 50% 44%, black 0%, rgba(0,0,0,0.78) 58%, transparent 100%)',
+            }}
+            src="/videos/noir-oak-hero-intro.mp4"
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+            initial={{ opacity: showVeil ? 0 : 0.35 }}
+            animate={{ opacity: crossfadeStarted ? 0 : 0.35 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: CROSSFADE_DURATION_S, ease: 'easeInOut' }}
+            onCanPlay={() => {
+              setShowVeil(false);
+              safePlay(introRef.current);
+            }}
+            onTimeUpdate={handleIntroTimeUpdate}
+            onEnded={handleIntroEnded}
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        className="absolute inset-0 z-[3]"
+        initial={false}
+        animate={{ opacity: showVeil ? 1 : 0 }}
+        transition={{ duration: 0.9, ease: 'easeOut' }}
+        style={{
+          background:
+            'radial-gradient(ellipse 58% 48% at 50% 28%, rgba(37,26,12,0.72), rgba(9,8,6,0.96) 68%)',
+        }}
+      />
+
+      {/* z-4: readability scrims around the hero text zone, max opacity 0.35 */}
+      <div
+        className="absolute inset-0 z-[4]"
+        style={{
+          background: `
+            radial-gradient(circle at 50% 68%, rgba(0,0,0,0.35), rgba(0,0,0,0.15) 36%, transparent 70%),
+            linear-gradient(180deg, rgba(0,0,0,0.25) 0%, transparent 34%, rgba(0,0,0,0.35) 100%)
+          `,
+        }}
+      />
     </div>
   );
 }

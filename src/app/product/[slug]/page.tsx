@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import Link from '@/components/transitions/LuxuryLink';
 import LockedOverlay from '@/components/LockedOverlay';
 import { useStore } from '@/store/useStore';
+import ProductPresence from '@/components/ProductPresence';
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -84,6 +85,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="section-top relative z-10 min-h-screen overflow-hidden bg-transparent pb-32 md:pb-36">
+      <ProductPresence productId={product.slug} />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_55%_at_50%_0%,rgba(26,21,17,0.72)_0%,#050403_58%)]" />
 
       {notice && (

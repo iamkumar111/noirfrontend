@@ -77,6 +77,11 @@ export default function Header() {
     };
   }, [mobileMenuOpen]);
 
+  useEffect(() => {
+    document.body.dataset.mobileMenuOpen = mobileMenuOpen ? 'true' : 'false';
+    return () => { delete document.body.dataset.mobileMenuOpen; };
+  }, [mobileMenuOpen]);
+
   const navLinks = [
     { name: 'Origin',    path: '/our-story'  },
     { name: 'Collection', path: '/collection' },
