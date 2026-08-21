@@ -6,7 +6,9 @@ import type { Product } from '@/lib/medusa/types';
 import { useStore } from '@/store/useStore';
 
 export default function ProductCard({ product }: { product: Product }) {
-  const user = useStore((state) => state.user);
+  const addToCart = useStore((state) => state.addToCart);
+  const addDemoProduct = useStore((state) => state.addDemoProduct);
+  const setCartOpen = useStore((state) => state.setCartOpen);
   const detailRows = [
     ['Finish', product.finish],
     ['Texture', product.texture],
@@ -46,7 +48,7 @@ export default function ProductCard({ product }: { product: Product }) {
             </span>
           </div>
 
-          <dl className="mb-6 border-t border-[rgba(200,164,93,0.16)]">
+          <dl className="mb-5 border-t border-[rgba(200,164,93,0.16)]">
             {detailRows.map(([label, value]) => (
               <div key={label} className="grid grid-cols-[4.25rem_1fr] gap-3 border-b border-[rgba(241,232,216,0.07)] py-2.5">
                 <dt className="text-[9px] uppercase tracking-[0.14em] text-[rgba(241,232,216,0.58)]">{label}</dt>
@@ -57,17 +59,29 @@ export default function ProductCard({ product }: { product: Product }) {
 
           <div className="mt-auto flex items-end justify-between gap-5">
             <div>
-              <span className="block text-[9px] uppercase tracking-[0.16em] text-[rgba(241,232,216,0.58)]">{product.reserveStatus}</span>
+              <span className="block text-[9px] uppercase tracking-[0.16em] text-[rgba(241,232,216,0.58)]">{product.weight}</span>
               <span className="mt-1 block font-serif text-lg text-[#D9B86C]">
-                {user ? product.price || product.lockedPrice : product.lockedPrice}
+                {product.price || product.lockedPrice}
               </span>
             </div>
-            <span className="shrink-0 border-b border-[#D9B86C]/35 pb-1 text-[10px] uppercase tracking-[0.18em] text-[#E0C17A]">
-              {user ? 'Reserve Lot 1' : 'Member Preview'}
-            </span>
+            <span className="shrink-0 border-b border-[#D9B86C]/35 pb-1 text-[10px] uppercase tracking-[0.18em] text-[#E0C17A]">View details</span>
           </div>
         </div>
       </Link>
+      <div className="px-5 pb-5 md:px-7 md:pb-7">
+        <button
+          type="button"
+          disabled={!product.availableForSale}
+          onClick={async () => {
+            if (product.source === 'fallback') addDemoProduct(product, 1);
+            else if (product.variantId) await addToCart(product.variantId, 1);
+            setCartOpen(true);
+          }}
+          className="btn-foil w-full disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <span className="btn-label">{product.availableForSale ? 'Add to Cart' : 'Coming soon'}</span>
+        </button>
+      </div>
     </article>
   );
 }

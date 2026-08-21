@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import Link from '@/components/transitions/LuxuryLink';
 import { useStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/medusa/products';
@@ -11,7 +10,6 @@ import { createDemoReservation } from '@/lib/reservations';
 
 export default function CheckoutPage() {
   const { user, cart, cartMode, medusaCart, cartStatus, hasHydrated } = useStore();
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [checkoutNotice, setCheckoutNotice] = useState('');
   const [paymentState, setPaymentState] = useState<'idle' | 'preparing' | 'gateway' | 'verifying' | 'failed'>('idle');
@@ -19,11 +17,7 @@ export default function CheckoutPage() {
   const paymentAttemptRef = useRef<string | null>(null);
   const clearCart = useStore((state) => state.clearCart);
 
-  useEffect(() => {
-    if (hasHydrated && !user) router.replace('/login?redirect=/checkout');
-  }, [hasHydrated, user, router]);
-
-  if (!hasHydrated || !user) return null;
+  if (!hasHydrated) return null;
   const subtotal = medusaCart?.subtotal ?? cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const shipping = medusaCart?.shipping_total ?? 0;
   const taxes = medusaCart?.tax_total ?? 0;
@@ -58,7 +52,7 @@ export default function CheckoutPage() {
           ].filter(Boolean),
         });
         clearCart();
-        router.replace(`/success?reservation_id=${encodeURIComponent(reservation.id)}`);
+        window.location.assign(`/success?reservation_id=${encodeURIComponent(reservation.id)}`);
         return;
       }
       if (!medusaCart) return;
@@ -94,7 +88,7 @@ export default function CheckoutPage() {
       const order = await completeVerifiedCheckout(updatedCart.id, paymentAttemptRef.current);
       sessionStorage.setItem('noir_oak_verified_order_id', order.id);
       clearCart();
-      router.replace(`/success?order_id=${encodeURIComponent(order.id)}`);
+      window.location.assign(`/success?order_id=${encodeURIComponent(order.id)}`);
     } catch (error) {
       setPaymentState('failed');
       setCheckoutNotice(error instanceof Error ? error.message : 'Payment could not be verified. Your selection is still reserved in the cart.');
@@ -109,7 +103,7 @@ export default function CheckoutPage() {
     if (cartStatus === 'loading') return <div className="section-top flex min-h-screen items-center justify-center bg-[#050403] px-5"><div className="text-center"><p className="eyebrow text-[#D9B86C]">Preparing reservation</p><div className="mx-auto mt-6 h-px w-36 animate-pulse bg-[#D9B86C]/40" /></div></div>;
     return (
       <div className="section-top flex min-h-screen items-center bg-[#050403] px-5 pb-24">
-        <div className="mx-auto max-w-lg text-center"><p className="eyebrow mb-4 text-[#D9B86C]">Private Selection</p><h1 className="font-serif text-4xl text-[#F1E8D8]">There is nothing to reserve yet.</h1><p className="mt-5 text-sm font-light leading-relaxed text-[rgba(241,232,216,0.72)]">Choose a Lot 1 piece before returning to the reservation flow.</p><Link href="/collection" className="btn-foil mt-8"><span className="btn-label">View the collection</span></Link></div>
+        <div className="mx-auto max-w-lg text-center"><p className="eyebrow mb-4 text-[#D9B86C]">Your Cart</p><h1 className="font-serif text-4xl text-[#F1E8D8]">Your cart is empty.</h1><p className="mt-5 text-sm font-light leading-relaxed text-[rgba(241,232,216,0.72)]">Choose a product before returning to checkout.</p><Link href="/collection" className="btn-foil mt-8"><span className="btn-label">Shop products</span></Link></div>
       </div>
     );
   }
@@ -119,9 +113,9 @@ export default function CheckoutPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_55%_at_70%_0%,rgba(26,21,17,0.7)_0%,#050403_62%)]" />
       <div className="relative z-20 mx-auto max-w-7xl">
         <header className="mb-10 border-b border-[rgba(200,164,93,0.2)] pb-9 md:mb-14 md:pb-12">
-          <p className="eyebrow mb-4 text-[#D9B86C]">Pre-paid access only</p>
-          <h1 className="font-serif text-[2.75rem] leading-tight text-[#F1E8D8] md:text-6xl">Reserve Lot 1</h1>
-          <p className="mt-4 max-w-2xl text-sm font-light leading-relaxed text-[rgba(241,232,216,0.72)]">Confirm delivery and choose a secure payment route. Cash on Delivery is unavailable for Lot 1.</p>
+          <p className="eyebrow mb-4 text-[#D9B86C]">Secure checkout</p>
+          <h1 className="font-serif text-[2.75rem] leading-tight text-[#F1E8D8] md:text-6xl">Checkout</h1>
+          <p className="mt-4 max-w-2xl text-sm font-light leading-relaxed text-[rgba(241,232,216,0.72)]">Add your delivery details, then choose a secure payment method.</p>
         </header>
 
         <form onSubmit={handlePayment} className="grid gap-12 lg:grid-cols-12 lg:gap-16">
@@ -129,13 +123,13 @@ export default function CheckoutPage() {
             <section>
               <div className="mb-6 flex items-end justify-between border-b border-[rgba(241,232,216,0.08)] pb-4"><h2 className="font-serif text-2xl text-[#F1E8D8]">Delivery</h2><span className="text-[9px] uppercase tracking-[0.12em] text-[rgba(241,232,216,0.58)]">India delivery</span></div>
               <div className="grid gap-6 sm:grid-cols-2">
-                <CheckoutField id="first-name" label="First Name" name="firstName" autoComplete="given-name" defaultValue={user.name.split(' ')[0]} />
-                <CheckoutField id="last-name" label="Last Name" name="lastName" autoComplete="family-name" defaultValue={user.name.split(' ').slice(1).join(' ')} />
+                <CheckoutField id="first-name" label="First Name" name="firstName" autoComplete="given-name" defaultValue={user?.name.split(' ')[0]} />
+                <CheckoutField id="last-name" label="Last Name" name="lastName" autoComplete="family-name" defaultValue={user?.name.split(' ').slice(1).join(' ')} />
                 <div className="sm:col-span-2"><CheckoutField id="address" label="Address" name="address" autoComplete="street-address" /></div>
                 <CheckoutField id="city" label="City" name="city" autoComplete="address-level2" />
                 <CheckoutField id="postal-code" label="Postal Code" name="postalCode" autoComplete="postal-code" inputMode="numeric" />
                 <CheckoutField id="checkout-phone" label="WhatsApp" name="phone" type="tel" autoComplete="tel" />
-                <CheckoutField id="checkout-email" label="Email" name="email" type="email" autoComplete="email" defaultValue={user.email} />
+                <CheckoutField id="checkout-email" label="Email" name="email" type="email" autoComplete="email" defaultValue={user?.email} />
               </div>
             </section>
 
@@ -162,13 +156,13 @@ export default function CheckoutPage() {
 
             <label className="flex items-start gap-4 border-t border-[rgba(241,232,216,0.08)] pt-6">
               <input type="checkbox" required className="mt-1 accent-[#D9B86C]" />
-              <span className="text-sm font-light leading-relaxed text-[rgba(241,232,216,0.72)]">I understand that Lot 1 uses pre-paid reservation and that availability is confirmed after successful payment.</span>
+              <span className="text-sm font-light leading-relaxed text-[rgba(241,232,216,0.72)]">I agree to the terms and understand that my order is confirmed after successful payment.</span>
             </label>
           </div>
 
           <aside className="lg:col-span-5">
             <div className="border border-[rgba(200,164,93,0.2)] bg-[#0D0B09] p-6 lg:sticky lg:top-32 md:p-8">
-              <h2 className="border-b border-[rgba(241,232,216,0.08)] pb-4 font-serif text-2xl text-[#F1E8D8]">Private Selection</h2>
+              <h2 className="border-b border-[rgba(241,232,216,0.08)] pb-4 font-serif text-2xl text-[#F1E8D8]">Order Summary</h2>
               <div className="divide-y divide-[rgba(241,232,216,0.08)]">
                 {cart.map((item) => (
                   <div key={item.id} className="grid grid-cols-[4.5rem_1fr_auto] gap-4 py-5">
@@ -186,7 +180,7 @@ export default function CheckoutPage() {
               </dl>
               <button type="submit" disabled={loading} className="btn-foil mt-7 w-full disabled:opacity-55"><span className="btn-label">{paymentState === 'preparing' ? 'Preparing payment' : paymentState === 'gateway' ? 'Opening secure payment' : paymentState === 'verifying' ? (isDemoCheckout ? 'Placing demo order' : 'Verifying payment') : paymentState === 'failed' ? 'Try payment again' : (isDemoCheckout ? 'Place demo order' : 'Continue to secure payment')}</span></button>
               {checkoutNotice && <p role="status" className="mt-4 border-l border-[#D9B86C]/40 pl-4 text-xs font-light leading-relaxed text-[rgba(241,232,216,0.72)]">{checkoutNotice}</p>}
-              <p className="mt-4 text-center text-xs font-light leading-relaxed text-[rgba(241,232,216,0.58)]">Delivery timing is confirmed with the reservation note.</p>
+              <p className="mt-4 text-center text-xs font-light leading-relaxed text-[rgba(241,232,216,0.58)]">Your delivery options are confirmed before payment.</p>
             </div>
           </aside>
         </form>

@@ -2,7 +2,7 @@
 
 import { memo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, Trash2, Plus, Minus } from 'lucide-react';
+import { X, Trash2, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
 import { useStore } from '@/store/useStore';
 import type { CartItem } from '@/lib/medusa/types';
@@ -53,28 +53,28 @@ export default function CartDrawer() {
           >
             <div className="flex justify-between items-center p-5 sm:p-8 border-b border-white/5 relative z-10">
               <div>
-                <span className="block text-xl font-serif tracking-[0.08em] text-[#C9A45C] font-light">Private Selection</span>
-                <span className="mt-1 block text-[9px] uppercase tracking-[0.14em] text-[rgba(241,232,216,0.58)]">Lot 1 pre-paid reservation</span>
+                <span className="block text-xl font-serif tracking-[0.08em] text-[#C9A45C] font-light">Your Cart</span>
+                <span className="mt-1 block text-[9px] uppercase tracking-[0.14em] text-[rgba(241,232,216,0.58)]">Review your items before checkout</span>
               </div>
-              <button aria-label="Close private selection" onClick={() => setCartOpen(false)} className="h-11 w-11 flex items-center justify-center text-[#E8E1D5]/65 hover:text-[#C9A45C] transition-colors">
+              <button aria-label="Close cart" onClick={() => setCartOpen(false)} className="h-11 w-11 flex items-center justify-center text-[#E8E1D5]/65 hover:text-[#C9A45C] transition-colors">
                 <X size={24} strokeWidth={1} />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 sm:p-8 relative z-10 hide-scrollbar">
               {cartStatus === 'loading' && cart.length === 0 ? (
-                <div aria-label="Loading private selection" className="space-y-7 pt-4">
+                <div aria-label="Loading cart" className="space-y-7 pt-4">
                   {[0, 1].map((item) => <div key={item} className="h-28 animate-pulse border border-[rgba(200,164,93,0.12)] bg-[linear-gradient(90deg,#0D0B09,#171512,#0D0B09)]" />)}
                 </div>
               ) : cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <span className="text-[rgba(241,232,216,0.58)] mb-5 tracking-[0.14em] text-[10px] uppercase">No pieces selected</span>
-                  <p className="text-xl font-serif text-[rgba(241,232,216,0.72)] font-light">Lot 1 products can be added from the collection.</p>
+                  <span className="text-[rgba(241,232,216,0.58)] mb-5 tracking-[0.14em] text-[10px] uppercase">Your cart is empty</span>
+                  <p className="text-xl font-serif text-[rgba(241,232,216,0.72)] font-light">Something exceptional may still be waiting.</p>
                   <button 
                     onClick={() => { setCartOpen(false); navigate('/collection'); }}
                     className="mt-8 text-[10px] uppercase tracking-[0.3em] text-[#C9A45C] border-b border-[#C9A45C]/30 pb-1 hover:border-[#C9A45C] transition-colors"
                   >
-                    View The Collection
+                    Shop products
                   </button>
                 </div>
               ) : (
@@ -85,17 +85,7 @@ export default function CartDrawer() {
 
               {cartError && <p role="status" className="mt-6 border-l border-[#D9B86C]/40 pl-4 text-xs font-light leading-relaxed text-[rgba(241,232,216,0.72)]">{cartError}</p>}
 
-              {cart.length > 0 && (
-                <div className="mt-10 border-l border-[#D9B86C]/35 pl-5 relative">
-                  <div className="flex items-center gap-3 mb-3 text-[#D9B86C] relative z-10">
-                    <Lock size={12} strokeWidth={1.5} />
-                    <span className="text-[9px] uppercase tracking-[0.16em] font-medium">Reservation note</span>
-                  </div>
-                  <p className="text-xs text-[rgba(217,208,192,0.68)] leading-relaxed font-light tracking-wide relative z-10">
-                    {cartMode === 'demo' ? 'Demo selection only. No payment will be collected.' : 'Pre-paid access only. Cash on Delivery is unavailable for Lot 1.'}
-                  </p>
-                </div>
-              )}
+              {cart.length > 0 && <p className="mt-10 border-l border-[#D9B86C]/35 pl-5 text-xs font-light leading-relaxed text-[rgba(217,208,192,0.68)]">Secure payment is available at checkout.</p>}
             </div>
 
             {cart.length > 0 && (
@@ -106,7 +96,7 @@ export default function CartDrawer() {
                 </div>
                 <div className="flex justify-between mb-8 text-sm text-[rgba(241,232,216,0.72)] font-light tracking-wider border-b border-white/5 pb-6">
                   <span>Shipping</span>
-                  <span className="text-[#D9B86C]">Complimentary</span>
+                  <span className="text-[#D9B86C]">Calculated at checkout</span>
                 </div>
                 <div className="flex justify-between mb-8 text-2xl font-serif text-[#F1E8D8] tracking-wide">
                   <span>Total</span>
@@ -119,7 +109,7 @@ export default function CartDrawer() {
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-[#C9A45C]/0 via-[#C9A45C]/10 to-[#C9A45C]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                   <span className="relative z-10 uppercase tracking-[0.3em] text-[10px] font-medium text-[#C9A45C] group-hover:text-[#FDF5E6] transition-colors duration-500 text-center w-full block">
-                    Continue To Reserve Lot 1
+                    Checkout
                   </span>
                 </button>
               </div>

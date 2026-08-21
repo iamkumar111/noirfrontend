@@ -51,7 +51,7 @@ export default function Home() {
     );
   }
 
-  const showMedusaPrice = leadProduct.source === 'medusa' && Boolean(leadProduct.price);
+  const showMedusaPrice = Boolean(leadProduct.price);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.1 }}>
@@ -60,23 +60,23 @@ export default function Home() {
       <section className="relative z-20 border-t border-[rgba(200,164,93,0.18)] bg-[#0A0907] px-5 py-20 md:px-6 md:py-28">
         <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-12 md:items-end md:gap-12">
           <motion.div {...fadeUp()} className="md:col-span-7">
-            <p className="eyebrow mb-5 text-[#D9B86C]">The first release</p>
+            <p className="eyebrow mb-5 text-[#D9B86C]">Premium chocolates &amp; gifts</p>
             <h2 className="section-heading max-w-3xl text-[#F1E8D8]">
-              Lot 1, prepared for the <span className="font-light italic text-[#D9B86C]">member table.</span>
+              Thoughtful treats, <span className="font-light italic text-[#D9B86C]">beautifully packed.</span>
             </h2>
           </motion.div>
           <motion.div {...fadeUp(0.08)} className="border-t border-[rgba(200,164,93,0.28)] pt-7 md:col-span-5 md:border-l md:border-t-0 md:pl-10 md:pt-0">
             <p className="body-copy max-w-xl text-[rgba(241,232,216,0.84)]">
-              Pure couverture coated almonds and gold-sealed makhana tins are finished in small batches, then placed in rigid packaging designed to remain on the table.
+              Rich chocolate almonds, roasted makhana and elegant gift boxes for sharing, gifting and everyday moments.
             </p>
             <dl className="mt-8 grid grid-cols-2 gap-x-8 border-t border-[rgba(241,232,216,0.1)] pt-5">
               <div>
-                <dt className="metadata-label text-[#D9B86C]">Release</dt>
-                <dd className="mt-2 text-[15px] text-[rgba(241,232,216,0.84)]">Numbered Lot 1</dd>
+                <dt className="metadata-label text-[#D9B86C]">Shop</dt>
+                <dd className="mt-2 text-[15px] text-[rgba(241,232,216,0.84)]">Chocolates &amp; gifts</dd>
               </div>
               <div>
-                <dt className="metadata-label text-[#D9B86C]">Reservation</dt>
-                <dd className="mt-2 text-[15px] text-[rgba(241,232,216,0.84)]">Pre-paid access</dd>
+                <dt className="metadata-label text-[#D9B86C]">Checkout</dt>
+                <dd className="mt-2 text-[15px] text-[rgba(241,232,216,0.84)]">Secure payment</dd>
               </div>
             </dl>
           </motion.div>
@@ -87,8 +87,8 @@ export default function Home() {
         <div className="mx-auto max-w-7xl">
           <div className="mb-12 flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between md:mb-16">
             <motion.div {...fadeUp()}>
-              <p className="eyebrow mb-5 text-[#D9B86C]">Collection preview</p>
-              <h2 className="section-heading text-[#F1E8D8]">Coated, roasted and packed for Lot 1.</h2>
+              <p className="eyebrow mb-5 text-[#D9B86C]">Most loved</p>
+              <h2 className="section-heading text-[#F1E8D8]">Best Sellers</h2>
             </motion.div>
             <Link href="/collection" className="text-link w-fit">View the collection</Link>
           </div>
@@ -124,7 +124,7 @@ export default function Home() {
                       <p className="metadata-label text-[rgba(241,232,216,0.58)]">{leadProduct.status}</p>
                       {showMedusaPrice && <p className="mt-2 font-serif text-2xl text-[#D9B86C]">{leadProduct.price}</p>}
                     </div>
-                    <span className="text-link">{leadProduct.availableForSale ? 'Reserve Lot 1' : 'Preview the piece'}</span>
+                    <span className="text-link">{leadProduct.availableForSale ? 'View details' : 'Coming soon'}</span>
                   </div>
                 </div>
               </Link>

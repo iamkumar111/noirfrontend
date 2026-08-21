@@ -51,7 +51,7 @@ export default function LuxuryPosterHero({ canPlay = false }: { canPlay?: boolea
           transition={{ duration: 0.8, ease: EASE, delay: 0.08 }}
           className="mb-7 md:mb-8"
         >
-          <span className="hero-label">Lot 1 Pre-Paid Only</span>
+          <span className="hero-label">NOIR &amp; OAK</span>
         </motion.div>
 
         {/* Headline text layer only — the atmospheric background remains isolated above. */}
@@ -60,13 +60,13 @@ export default function LuxuryPosterHero({ canPlay = false }: { canPlay?: boolea
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: EASE, delay: 0.16 }}
           className="hero-title font-serif"
-          aria-label="ARTISAN CONFECTIONERY HOUSE"
+          aria-label="Premium Chocolates and Gifts"
         >
           <span className="hero-title-main">
-            <span className="hero-title-artisan">ARTISAN</span>{' '}
-            <span className="hero-title-confectionery">CONFECTIONERY</span>
+            <span className="hero-title-artisan">PREMIUM</span>{' '}
+            <span className="hero-title-confectionery">CHOCOLATES</span>
           </span>{' '}
-          <span className="hero-title-secondary">HOUSE</span>
+          <span className="hero-title-secondary">&amp; GIFTS</span>
         </motion.h1>
 
         <motion.p
@@ -75,7 +75,7 @@ export default function LuxuryPosterHero({ canPlay = false }: { canPlay?: boolea
           transition={{ duration: 0.8, ease: EASE, delay: 0.22 }}
           className="hero-editorial-line font-serif font-light italic"
         >
-          where finish becomes the experience.
+          Thoughtfully packed for every occasion.
         </motion.p>
 
         {/* Subtext */}
@@ -85,7 +85,7 @@ export default function LuxuryPosterHero({ canPlay = false }: { canPlay?: boolea
           transition={{ duration: 0.8, ease: EASE, delay: 0.3 }}
           className="hero-description"
         >
-          Pure couverture coated almonds, gold-sealed makhana tins and rigid gifting vaults prepared in numbered micro-batches.
+          Rich chocolate almonds, roasted makhana and elegant gift boxes for everyday moments and meaningful occasions.
         </motion.p>
 
         {/* CTAs — fade in after the headline */}
@@ -95,11 +95,11 @@ export default function LuxuryPosterHero({ canPlay = false }: { canPlay?: boolea
           transition={{ duration: 0.8, ease: EASE, delay: 0.38 }}
           className="hero-actions"
         >
-          <Link href="/vip-access" className="hero-action hero-action-primary btn-foil">
-            <span className="btn-label">Request VIP Access</span>
+          <Link href="/chocolates" className="hero-action hero-action-primary btn-foil">
+            <span className="btn-label">Shop Chocolates</span>
           </Link>
-          <Link href="/collection" className="hero-action btn-quiet">
-            Preview the Vault
+          <Link href="/gifts" className="hero-action btn-quiet">
+            Shop Gifts
           </Link>
         </motion.div>
 
@@ -109,7 +109,7 @@ export default function LuxuryPosterHero({ canPlay = false }: { canPlay?: boolea
           transition={{ duration: 0.8, ease: EASE, delay: 0.46 }}
           className="hero-note"
         >
-          Member preview. Pre-paid reservations. Batch card included.
+          Secure checkout · Freshly packed · Gift-ready presentation
         </motion.p>
       </div>
     </section>

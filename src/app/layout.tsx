@@ -28,11 +28,11 @@ const OG_IMAGE = "/images/hero/noir-oak-final-frame.jpg";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "NOIR & OAK — Premium Dry Fruits & Luxury Gifting",
+    default: "Premium Chocolates & Gifts Online | NOIR & OAK",
     template: "%s — NOIR & OAK",
   },
   description:
-    "Premium dry fruits, pure couverture coated almonds, gold-sealed makhana tins, and curated gifting boxes by NOIR & OAK. Released in numbered micro-batches for private access.",
+    "Shop premium chocolate almonds, roasted makhana and gift boxes from NOIR & OAK. Thoughtfully packed for everyday treats and meaningful gifts.",
   applicationName: "NOIR & OAK",
   keywords: [
     "premium dry fruits",
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     siteName: "NOIR & OAK",
     title: "NOIR & OAK — Premium Dry Fruits & Luxury Gifting",
     description:
-      "Pure couverture coated almonds, gold-sealed makhana tins, and curated gifting vaults — released in numbered micro-batches for private access.",
+      "Premium chocolate almonds, roasted makhana and gift boxes, thoughtfully packed by NOIR & OAK.",
     images: [
       {
         url: OG_IMAGE,
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NOIR & OAK — Premium Dry Fruits & Luxury Gifting",
     description:
-      "Pure couverture coated almonds, gold-sealed makhana tins, and curated gifting vaults by NOIR & OAK.",
+      "Premium chocolate almonds, roasted makhana and gift boxes from NOIR & OAK.",
     images: [OG_IMAGE],
   },
   icons: {
@@ -103,6 +103,18 @@ export default function RootLayout({
         className="noise-bg"
         suppressHydrationWarning
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                { "@type": "Organization", name: "NOIR & OAK", url: SITE_URL, logo: `${SITE_URL}/images/logo/noir-oak-tree-mark.png` },
+                { "@type": "WebSite", name: "NOIR & OAK", url: SITE_URL },
+              ],
+            }).replace(/</g, "\\u003c"),
+          }}
+        />
         <Providers>
           <LuxuryRouteTransition>
             <IntroGate>

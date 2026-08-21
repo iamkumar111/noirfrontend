@@ -5,13 +5,11 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import Link from '@/components/transitions/LuxuryLink';
-import LockedOverlay from '@/components/LockedOverlay';
 import { useStore } from '@/store/useStore';
 import ProductPresence from '@/components/ProductPresence';
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const user = useStore((state) => state.user);
   const products = useStore((state) => state.products);
   const catalogStatus = useStore((state) => state.catalogStatus);
   const catalogError = useStore((state) => state.catalogError);
@@ -55,15 +53,15 @@ export default function ProductDetailPage() {
     ['Gifting use', product.giftingUse],
     ['Batch information', `${product.batchNumber}; ${product.releaseStatus}`],
     ['Pairing', product.pairing],
-    ['Reservation note', `${product.reserveStatus}; Cash on Delivery unavailable for Lot 1`],
+    ['Availability', product.reserveStatus],
   ];
   const senses = Object.entries(product.sensory) as [keyof typeof product.sensory, string][];
 
-  const handleReserve = async () => {
+  const handleAddToCart = async () => {
     if (isReserving) return;
     if (product.source === 'fallback') {
       addDemoProduct(product, quantity);
-      showNotice('Added to your demo selection. Continue to the reservation steps.');
+      showNotice('Added to Cart');
       setCartOpen(true);
       return;
     }
@@ -74,10 +72,10 @@ export default function ProductDetailPage() {
     try {
       setIsReserving(true);
       await addToCart(product.variantId, quantity);
-      showNotice('Added to private selection.');
+      showNotice('Added to Cart');
       setCartOpen(true);
     } catch {
-      showNotice('This piece could not be added to your private selection.');
+      showNotice('This item could not be added to your cart.');
     } finally {
       setIsReserving(false);
     }
@@ -95,10 +93,11 @@ export default function ProductDetailPage() {
       )}
 
       <div className="relative z-20 mx-auto max-w-7xl px-5 md:px-6">
-        <div className="mb-8 flex items-center justify-between border-b border-[rgba(241,232,216,0.08)] pb-4 md:mb-12">
-          <Link href="/collection" className="text-[10px] uppercase tracking-[0.12em] text-[rgba(241,232,216,0.68)] hover:text-[#D9B86C]">Back to collection</Link>
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[#D9B86C]">{product.category}</span>
-        </div>
+        <nav aria-label="Breadcrumb" className="mb-8 flex items-center gap-2 border-b border-[rgba(241,232,216,0.08)] pb-4 text-[10px] uppercase tracking-[0.12em] md:mb-12">
+          <Link href="/" className="text-[rgba(241,232,216,0.68)] hover:text-[#D9B86C]">Home</Link><span aria-hidden="true">/</span>
+          <Link href="/collection" className="text-[rgba(241,232,216,0.68)] hover:text-[#D9B86C]">Shop</Link><span aria-hidden="true">/</span>
+          <Link href={product.category === 'Gift Boxes' ? '/gifts' : '/chocolates'} className="text-[rgba(241,232,216,0.68)] hover:text-[#D9B86C]">{product.category}</Link>
+        </nav>
 
         <div className="mb-20 grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-20 md:mb-28">
           <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.85 }}>
@@ -122,7 +121,7 @@ export default function ProductDetailPage() {
           <motion.div initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.85, delay: 0.08 }} className="flex flex-col lg:pt-4">
             <p className="mb-4 text-[10px] uppercase tracking-[0.16em] text-[#D9B86C]">{product.badge}</p>
             <h1 className="font-serif text-[2.75rem] leading-[1.04] text-[#F1E8D8] md:text-6xl">{product.name}</h1>
-            <p className="mt-6 text-base font-light leading-[1.8] text-[rgba(241,232,216,0.78)]">{product.longDescription}</p>
+            <p className="mt-5 text-base font-light leading-[1.8] text-[rgba(241,232,216,0.78)]">{product.shortDescription}</p>
 
             <dl className="mt-8 grid grid-cols-2 border-y border-[rgba(200,164,93,0.18)]">
               <div className="border-r border-[rgba(200,164,93,0.18)] py-4 pr-4"><dt className="text-[9px] uppercase tracking-[0.14em] text-[#D9B86C]">Batch</dt><dd className="mt-2 text-sm text-[rgba(241,232,216,0.78)]">{product.batchNumber}</dd></div>
@@ -130,11 +129,10 @@ export default function ProductDetailPage() {
             </dl>
 
             <div className="mt-8">
-              {user ? (
-                <div className="border border-[rgba(200,164,93,0.18)] bg-[#0D0B09] p-6 md:p-7">
+              <div className="border border-[rgba(200,164,93,0.18)] bg-[#0D0B09] p-6 md:p-7">
                   <div className="flex items-end justify-between gap-5 border-b border-[rgba(241,232,216,0.08)] pb-5">
-                    <div><p className="text-[9px] uppercase tracking-[0.14em] text-[rgba(241,232,216,0.6)]">Member price</p><p className="mt-1 font-serif text-3xl text-[#D9B86C]">{product.price || product.lockedPrice}</p></div>
-                    <p className="max-w-36 text-right text-xs leading-relaxed text-[rgba(241,232,216,0.62)]">Pre-paid access only</p>
+                    <div><p className="text-[9px] uppercase tracking-[0.14em] text-[rgba(241,232,216,0.6)]">Price</p><p className="mt-1 font-serif text-3xl text-[#D9B86C]">{product.price || product.lockedPrice}</p></div>
+                    <p className="max-w-36 text-right text-xs leading-relaxed text-[rgba(241,232,216,0.62)]">Secure payment at checkout</p>
                   </div>
                   <div className="mt-6 flex flex-wrap items-end gap-3">
                     <div>
@@ -145,12 +143,9 @@ export default function ProductDetailPage() {
                         <button type="button" disabled={product.stock !== null && quantity >= product.stock} aria-label="Increase quantity" onClick={() => setQuantity((current) => Math.min(product.stock ?? Number.POSITIVE_INFINITY, current + 1))} className="h-12 w-11 touch-manipulation text-[#D9B86C] disabled:opacity-30">+</button>
                       </div>
                     </div>
-                    <button type="button" onClick={() => void handleReserve()} disabled={isReserving} className="btn-foil hidden h-12 flex-1 disabled:opacity-55 lg:inline-flex"><span className="btn-label">{isReserving ? 'Preparing selection' : 'Reserve Lot 1'}</span></button>
+                    <button type="button" onClick={() => void handleAddToCart()} disabled={isReserving} className="btn-foil hidden h-12 flex-1 disabled:opacity-55 lg:inline-flex"><span className="btn-label">{isReserving ? 'Adding to Cart' : 'Add to Cart'}</span></button>
                   </div>
-                </div>
-              ) : (
-                <LockedOverlay><p>{product.lockedPrice}</p></LockedOverlay>
-              )}
+              </div>
             </div>
 
             <button
@@ -166,8 +161,8 @@ export default function ProductDetailPage() {
 
         <section className="mb-20 md:mb-28">
           <div className="mb-8 grid gap-5 md:grid-cols-12 md:items-end">
-            <div className="md:col-span-7"><p className="eyebrow mb-4 text-[#D9B86C]">Product overview</p><h2 className="font-serif text-4xl text-[#F1E8D8] md:text-5xl">What arrives in the Lot 1 pack.</h2></div>
-            <p className="text-sm font-light leading-relaxed text-[rgba(241,232,216,0.72)] md:col-span-4 md:col-start-9">Practical product, storage and reservation information for this batch.</p>
+            <div className="md:col-span-7"><p className="eyebrow mb-4 text-[#D9B86C]">Product details</p><h2 className="font-serif text-4xl text-[#F1E8D8] md:text-5xl">What&apos;s inside.</h2></div>
+            <p className="text-sm font-light leading-relaxed text-[rgba(241,232,216,0.72)] md:col-span-4 md:col-start-9">Ingredients, storage and product information in one place.</p>
           </div>
           <dl className="border-t border-[rgba(200,164,93,0.28)]">
             {facts.map(([label, value]) => (
@@ -207,11 +202,9 @@ export default function ProductDetailPage() {
         )}
       </div>
 
-      {user && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#C9A45C]/20 bg-[#050505] pb-[env(safe-area-inset-bottom)] lg:hidden">
-          <div className="flex items-center gap-4 px-5 py-3"><div><span className="block font-serif text-lg text-[#C9A45C]">{product.price || product.lockedPrice}</span><span className="text-[8px] uppercase tracking-[0.12em] text-[rgba(241,232,216,0.58)]">{product.batchCode}</span></div><button type="button" onClick={() => void handleReserve()} disabled={isReserving} className="btn-foil h-12 flex-1 !py-0 disabled:opacity-55"><span className="btn-label">{isReserving ? 'Preparing selection' : 'Reserve Lot 1'}</span></button></div>
-        </div>
-      )}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#C9A45C]/20 bg-[#050505] pb-[env(safe-area-inset-bottom)] lg:hidden">
+        <div className="flex items-center gap-4 px-5 py-3"><div><span className="block font-serif text-lg text-[#C9A45C]">{product.price || product.lockedPrice}</span><span className="text-[8px] uppercase tracking-[0.12em] text-[rgba(241,232,216,0.58)]">{product.weight}</span></div><button type="button" onClick={() => void handleAddToCart()} disabled={isReserving} className="btn-foil h-12 flex-1 !py-0 disabled:opacity-55"><span className="btn-label">{isReserving ? 'Adding to Cart' : 'Add to Cart'}</span></button></div>
+      </div>
     </div>
   );
 }

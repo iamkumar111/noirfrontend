@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from '@/components/transitions/LuxuryLink';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Menu, X } from 'lucide-react';
+import { ShoppingBag, Menu, X, UserRound } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 
 // ─── style constants ──────────────────────────────────────────────────────────
@@ -83,9 +83,10 @@ export default function Header() {
   }, [mobileMenuOpen]);
 
   const navLinks = [
-    { name: 'Origin',    path: '/our-story'  },
-    { name: 'Collection', path: '/collection' },
-    { name: 'Gifting',   path: '/gifting'    },
+    { name: 'Shop', path: '/collection' },
+    { name: 'Chocolates', path: '/chocolates' },
+    { name: 'Gifts', path: '/gifts' },
+    { name: 'About', path: '/our-story' },
   ];
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -152,15 +153,20 @@ export default function Header() {
           {/* ── Right nav ───────────────────────────────────────────────────── */}
           <nav className="hidden md:flex items-center justify-end gap-10 w-1/3">
             <div className="relative flex flex-col items-center gap-[5px]">
-              <Link href="/gifting" className={navLinkClass(pathname === '/gifting')}>
-                Gifting
+              <Link href="/gifts" className={navLinkClass(pathname === '/gifts' || pathname === '/gifting')}>
+                Gifts
               </Link>
-              {pathname === '/gifting' && (
+              {(pathname === '/gifts' || pathname === '/gifting') && (
                 <motion.span
                   layoutId="nav-underline"
                   className="h-[1px] w-5 bg-gradient-to-r from-transparent via-[#C9A45C] to-transparent"
                 />
               )}
+            </div>
+
+            <div className="relative flex flex-col items-center gap-[5px]">
+              <Link href="/our-story" className={navLinkClass(pathname === '/our-story')}>About</Link>
+              {pathname === '/our-story' && <motion.span layoutId="nav-underline" className="h-[1px] w-5 bg-gradient-to-r from-transparent via-[#C9A45C] to-transparent" />}
             </div>
 
             {user ? (
@@ -169,10 +175,7 @@ export default function Header() {
                 onMouseEnter={() => setDropdownOpen(true)}
                 onMouseLeave={() => setDropdownOpen(false)}
               >
-                <Link
-                  href="/dashboard"
-                  className="flex items-center gap-2 text-[#C9A45C] hover:text-[#FDF5E6] transition-colors duration-500"
-                >
+                <Link href="/dashboard" aria-label="Account" className="flex items-center gap-2 text-[#C9A45C] hover:text-[#FDF5E6] transition-colors duration-500">
                   <div className="w-6 h-6 rounded-full border border-[#C9A45C]/50 flex items-center justify-center text-[8px] bg-[#0A0A0A]">
                     {user.name.substring(0, 2).toUpperCase()}
                   </div>
@@ -206,9 +209,7 @@ export default function Header() {
             ) : (
               <>
                 <div className="relative flex flex-col items-center gap-[5px]">
-                  <Link href="/vip-access" className={`${NAV_LINK_BASE} ${NAV_LINK_HOVER} ${pathname === '/vip-access' ? NAV_LINK_ACTIVE : 'text-[#C9A45C]'}`}>
-                    VIP Access
-                  </Link>
+                  <Link href="/vip-access" className={`${NAV_LINK_BASE} ${NAV_LINK_HOVER} ${pathname === '/vip-access' ? NAV_LINK_ACTIVE : 'text-[#C9A45C]'}`}>Members</Link>
                   {pathname === '/vip-access' && (
                     <motion.span
                       layoutId="nav-underline"
@@ -217,9 +218,7 @@ export default function Header() {
                   )}
                 </div>
                 <div className="relative flex flex-col items-center gap-[5px]">
-                  <Link href="/login" className={navLinkClass(pathname === '/login')}>
-                    Login
-                  </Link>
+                  <Link href="/login" aria-label="Account" className={navLinkClass(pathname === '/login')}><UserRound size={16} strokeWidth={1.5} /></Link>
                   {pathname === '/login' && (
                     <motion.span
                       layoutId="nav-underline"
@@ -230,7 +229,7 @@ export default function Header() {
               </>
             )}
 
-            {/* Cart / Reserve button */}
+            {/* Cart */}
             <button
               onClick={() => setCartOpen(true)}
               className="flex items-center gap-2 relative transition-colors duration-300
@@ -238,7 +237,7 @@ export default function Header() {
                          text-[11px] uppercase tracking-[0.2em] font-[500]
                          hover:[text-shadow:0_0_16px_rgba(201,164,92,0.28)]"
             >
-              <span>Selection</span>
+              <span>Cart</span>
               <ShoppingBag
                 size={15}
                 strokeWidth={1.6}
@@ -256,7 +255,7 @@ export default function Header() {
           <div className="md:hidden flex items-center justify-end gap-1.5 w-1/3">
             <button
               onClick={() => setCartOpen(true)}
-              aria-label={`Open reserved cart${cartCount > 0 ? `, ${cartCount} item${cartCount > 1 ? 's' : ''}` : ''}`}
+              aria-label={`Open cart${cartCount > 0 ? `, ${cartCount} item${cartCount > 1 ? 's' : ''}` : ''}`}
               className="h-10 w-10 flex items-center justify-center text-[rgba(245,235,221,0.82)] hover:text-[#C9A45C] transition-colors relative"
             >
               <ShoppingBag size={18} strokeWidth={1.6} />
@@ -325,13 +324,13 @@ export default function Header() {
                 </motion.div>
               ))}
 
-              <div className="my-6 text-[9px] uppercase tracking-[0.18em] text-[rgba(241,232,216,0.54)]">Member services</div>
+              <div className="my-6 text-[9px] uppercase tracking-[0.18em] text-[rgba(241,232,216,0.54)]">Account</div>
 
               {user ? (
                 <>
                   <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full py-3 text-[12px] uppercase tracking-[0.14em] text-[rgba(245,235,221,0.84)] hover:text-[#C9A45C] transition-colors">The Vault</Link>
                   <Link href="/wishlist"  onClick={() => setMobileMenuOpen(false)} className="w-full py-3 text-[12px] uppercase tracking-[0.14em] text-[rgba(245,235,221,0.84)] hover:text-[#C9A45C] transition-colors">Saved Selection</Link>
-                  <Link href="/orders"    onClick={() => setMobileMenuOpen(false)} className="w-full py-3 text-[12px] uppercase tracking-[0.14em] text-[rgba(245,235,221,0.84)] hover:text-[#C9A45C] transition-colors">Reservations</Link>
+                  <Link href="/orders"    onClick={() => setMobileMenuOpen(false)} className="w-full py-3 text-[12px] uppercase tracking-[0.14em] text-[rgba(245,235,221,0.84)] hover:text-[#C9A45C] transition-colors">Orders</Link>
                   <button
                     onClick={() => { logout(); setMobileMenuOpen(false); }}
                     className="mt-5 text-[11px] uppercase tracking-[0.14em] text-[rgba(245,235,221,0.58)]"
@@ -343,7 +342,7 @@ export default function Header() {
                 <>
                   <Link href="/login" onClick={() => setMobileMenuOpen(false)}
                     className="w-full py-3 text-[12px] uppercase tracking-[0.14em] text-[rgba(245,235,221,0.84)] hover:text-[#C9A45C] transition-colors">
-                    Enter The Vault
+                    Log in
                   </Link>
                   <Link
                     href="/vip-access"
