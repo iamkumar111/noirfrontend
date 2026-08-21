@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getProductByHandle } from "@/lib/medusa/products";
-
-const baseUrl = "https://noiroak.com";
+import { SITE_URL } from "@/lib/site";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -28,21 +27,21 @@ export default async function ProductLayout({ children, params }: { children: Re
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    image: product.images.map((image) => `${baseUrl}${image}`),
+    image: product.images.map((image) => `${SITE_URL}${image}`),
     description: product.shortDescription,
     sku: product.batchCode,
     brand: { "@type": "Brand", name: "NOIR & OAK" },
-    url: `${baseUrl}/product/${product.slug}`,
-    offers: Number.isFinite(numericPrice) && numericPrice > 0 ? { "@type": "Offer", price: numericPrice, priceCurrency: "INR", availability: product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock", url: `${baseUrl}/product/${product.slug}` } : undefined,
+    url: `${SITE_URL}/product/${product.slug}`,
+    offers: Number.isFinite(numericPrice) && numericPrice > 0 ? { "@type": "Offer", price: numericPrice, priceCurrency: "INR", availability: product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock", url: `${SITE_URL}/product/${product.slug}` } : undefined,
     },
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: baseUrl },
-        { "@type": "ListItem", position: 2, name: "Shop", item: `${baseUrl}/collection` },
-        { "@type": "ListItem", position: 3, name: product.category, item: `${baseUrl}/${product.category === "Gift Boxes" ? "gifts" : "chocolates"}` },
-        { "@type": "ListItem", position: 4, name: product.name, item: `${baseUrl}/product/${product.slug}` },
+        { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+        { "@type": "ListItem", position: 2, name: "Shop", item: `${SITE_URL}/collection` },
+        { "@type": "ListItem", position: 3, name: product.category, item: `${SITE_URL}/${product.category === "Gift Boxes" ? "gifts" : "chocolates"}` },
+        { "@type": "ListItem", position: 4, name: product.name, item: `${SITE_URL}/product/${product.slug}` },
       ],
     },
   ];

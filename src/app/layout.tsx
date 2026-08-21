@@ -9,6 +9,7 @@ import LuxuryRouteTransition from "@/components/transitions/LuxuryRouteTransitio
 import IntroGate from "@/components/IntroGate";
 import CartDrawer from "@/components/CartDrawer";
 import RecentPurchaseNotifications from "@/components/RecentPurchaseNotifications";
+import { SITE_URL } from "@/lib/site";
 
 const cormorant = Cormorant_Garamond({ 
   subsets: ["latin"],
@@ -22,7 +23,6 @@ const inter = Inter({
   display: "swap",
 });
 
-const SITE_URL = "https://noiroak.com";
 const OG_IMAGE = "/images/hero/noir-oak-final-frame.jpg";
 
 export const metadata: Metadata = {
